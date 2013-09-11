@@ -1,4 +1,4 @@
-### system
+### system file system
 
 # remount system volume rw
 /sbin/busybox mount -o remount,rw -t ext4 $SYSTEM_DEVICE /system
@@ -18,7 +18,7 @@ fi
 /sbin/busybox mount -o remount,ro -t ext4 $SYSTEM_DEVICE /system
 
 
-### rootfs
+### root file system
 
 # remount root volume rw
 /sbin/busybox mount -o remount,rw /
