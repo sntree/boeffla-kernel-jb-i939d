@@ -1048,22 +1048,43 @@ fi
 
 if [ "apply_zram" == "$1" ]; then
 	if [ "1" == "$2" ]; then
-		busybox swapoff /dev/block/zram0
-		busybox swapoff /dev/block/zram1
-		busybox swapoff /dev/block/zram2
-		busybox swapoff /dev/block/zram3
-		echo "1" > /sys/block/zram0/reset
-		echo "1" > /sys/block/zram1/reset
-		echo "1" > /sys/block/zram2/reset
-		echo "1" > /sys/block/zram3/reset
-		echo "1" > /sys/block/zram0/initstate
-		echo "1" > /sys/block/zram1/initstate
-		echo "1" > /sys/block/zram2/initstate
-		echo "1" > /sys/block/zram3/initstate
-		busybox swapon /dev/block/zram0
-		busybox swapon /dev/block/zram1
-		busybox swapon /dev/block/zram2
-		busybox swapon /dev/block/zram3
+		if [ "1" == "$3" ]; then
+			busybox swapoff /dev/block/zram0
+			busybox swapoff /dev/block/zram1
+			busybox swapoff /dev/block/zram2
+			busybox swapoff /dev/block/zram3
+			echo "1" > /sys/block/zram0/reset
+			echo "1" > /sys/block/zram1/reset
+			echo "1" > /sys/block/zram2/reset
+			echo "1" > /sys/block/zram3/reset
+			busybox swapon -p 2 /dev/block/zram0
+		fi
+		if [ "2" == "$3" ]; then
+			busybox swapoff /dev/block/zram0
+			busybox swapoff /dev/block/zram1
+			busybox swapoff /dev/block/zram2
+			busybox swapoff /dev/block/zram3
+			echo "1" > /sys/block/zram0/reset
+			echo "1" > /sys/block/zram1/reset
+			echo "1" > /sys/block/zram2/reset
+			echo "1" > /sys/block/zram3/reset
+			busybox swapon -p 2 /dev/block/zram0
+			busybox swapon -p 2 /dev/block/zram1
+		fi
+		if [ "4" == "$3" ]; then
+			busybox swapoff /dev/block/zram0
+			busybox swapoff /dev/block/zram1
+			busybox swapoff /dev/block/zram2
+			busybox swapoff /dev/block/zram3
+			echo "1" > /sys/block/zram0/reset
+			echo "1" > /sys/block/zram1/reset
+			echo "1" > /sys/block/zram2/reset
+			echo "1" > /sys/block/zram3/reset
+			busybox swapon -p 2 /dev/block/zram0
+			busybox swapon -p 2 /dev/block/zram1
+			busybox swapon -p 2 /dev/block/zram2
+			busybox swapon -p 2 /dev/block/zram3
+		fi
 		echo "80" > /proc/sys/vm/swappiness
 	fi
 
@@ -1076,10 +1097,6 @@ if [ "apply_zram" == "$1" ]; then
 		echo "1" > /sys/block/zram1/reset
 		echo "1" > /sys/block/zram2/reset
 		echo "1" > /sys/block/zram3/reset
-		echo "0" > /sys/block/zram0/initstate
-		echo "0" > /sys/block/zram1/initstate
-		echo "0" > /sys/block/zram2/initstate
-		echo "0" > /sys/block/zram3/initstate
 	fi
 	exit 0
 fi
