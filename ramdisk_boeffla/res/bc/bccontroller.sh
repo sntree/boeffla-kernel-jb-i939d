@@ -1618,9 +1618,11 @@ if [ "flash_kernel" == "$1" ]; then
 fi
 
 if [ "archive_kernel" == "$1" ]; then
+	IMGPATH=$2
+	cd ${IMGPATH%/*}
 	busybox rm $3.tar
 	busybox rm $3.tar.md5
-	busybox tar cvf $3.tar $2
+	busybox tar cvf $3.tar ${IMGPATH##*/}
 	busybox md5sum $3.tar >> $3.tar
 	busybox mv $3.tar $3.tar.md5
 	busybox rm $2
