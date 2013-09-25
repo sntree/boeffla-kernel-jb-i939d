@@ -1303,9 +1303,17 @@ if [ "action_debug_info_file" == "$1" ]; then
 	echo -e "\n**** GPU undervolting:\n" >> $2
 	cat /sys/class/misc/gpu_voltage_control/gpu_control >> $2
 
+	echo -e "\n**** ASV level:\n" >> $2
+	cat /sys/devices/system/cpu/cpu0/cpufreq/asv_level >> $2
+
 	echo -e "\n**** Root:\n" >> $2
 	ls /system/xbin/su >> $2
 	ls /system/app/Superuser.apk >> $2
+
+	echo -e "\n**** Busybox:\n" >> $2
+	ls /sbin/busybox >> $2
+	ls /system/bin/busybox >> $2
+	ls /system/xbin/busybox >> $2
 
 	echo -e "\n**** Mounts:\n" >> $2
 	mount | busybox grep /data >> $2
@@ -1315,11 +1323,16 @@ if [ "action_debug_info_file" == "$1" ]; then
 	cat /sys/block/mmcblk0/bdi/read_ahead_kb >> $2
 	cat /sys/block/mmcblk1/bdi/read_ahead_kb >> $2
 
-	echo -e "\n**** System tweaks (vfs_cache_pressure/dirty_background_ratio/dirty_ratio/drop_caches:\n" >> $2
-	cat /proc/sys/vm/vfs_cache_pressure >> $2
-	cat /proc/sys/vm/dirty_background_ratio >> $2
-	cat /proc/sys/vm/dirty_ratio >> $2
-	cat /proc/sys/vm/drop_caches >> $2
+	echo -e "\n**** Various kernel settings by config app:\n" >> $2
+	echo -e "\n(gov prof, cpu volt prof, gpu freq prof, gpu volt prof, eq prof, mdnie over, sys tweaks, swapp over)\n" >> $2
+	cat /dev/bk_governor_profile >> $2
+	cat /dev/bk_cpu_voltages_profile >> $2
+	cat /dev/bk_gpu_frequencies_profile >> $2
+	cat /dev/bk_gpu_voltages_profile >> $2
+	cat /dev/bk_eq_gains_profile >> $2
+	cat /dev/bk_mdnie_overwrite >> $2
+	cat /dev/bk_system_tweaks >> $2
+	cat /dev/bk_swappiness_overwrite >> $2
 
 	echo -e "\n**** Touch boost switch:\n" >> $2
 	cat /sys/class/misc/touchboost_switch/touchboost_switch >> $2
@@ -1373,12 +1386,21 @@ if [ "action_debug_info_file" == "$1" ]; then
 
 	echo -e "\n**** zRam disk size:\n" >> $2
 	cat /sys/block/zram0/disksize >> $2
+	cat /sys/block/zram1/disksize >> $2
+	cat /sys/block/zram2/disksize >> $2
+	cat /sys/block/zram3/disksize >> $2
 
 	echo -e "\n**** zRam compressed data size:\n" >> $2
 	cat /sys/block/zram0/compr_data_size >> $2
+	cat /sys/block/zram1/compr_data_size >> $2
+	cat /sys/block/zram2/compr_data_size >> $2
+	cat /sys/block/zram3/compr_data_size >> $2
 
 	echo -e "\n**** zRam original data size:\n" >> $2
 	cat /sys/block/zram0/orig_data_size >> $2
+	cat /sys/block/zram1/orig_data_size >> $2
+	cat /sys/block/zram2/orig_data_size >> $2
+	cat /sys/block/zram3/orig_data_size >> $2
 
 	echo -e "\n**** Uptime:\n" >> $2
 	cat /proc/uptime >> $2
