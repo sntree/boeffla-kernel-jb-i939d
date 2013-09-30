@@ -105,16 +105,6 @@
 	echo "1100" > /sys/kernel/charge_levels/charge_level_ac
 	echo $(date) "AC charge rate set to 1100 mA" >> $BOEFFLA_LOGFILE
 
-	# Android logger defaults to off
-	echo 0 > /sys/kernel/logger_mode/logger_mode
-	echo $(date) Android logger disabled >> $BOEFFLA_LOGFILE
-
-	# Kernel logger defaults to off (only Samsung kernels)
-	if [ "SAM" == "$KERNEL" ]; then
-		echo 0 > /sys/kernel/printk_mode/printk_mode
-		echo $(date) Kernel logger disabled >> $BOEFFLA_LOGFILE
-	fi
-
 # Now wait for the rom to finish booting up
 # (by checking for the android acore process)
 	while ! /sbin/busybox pgrep android.process.acore ; do
