@@ -773,9 +773,9 @@ if [ "apply_governor_profile" == "$1" ]; then
 		echo "95" >/sys/devices/system/cpu/cpufreq/zzmoove/up_threshold_hotplug2
 		echo "98" >/sys/devices/system/cpu/cpufreq/zzmoove/up_threshold_hotplug3
 
-		echo "900000" >/sys/devices/system/cpu/cpufreq/zzmoove/up_threshold_hotplug_freq1
-		echo "1100000" >/sys/devices/system/cpu/cpufreq/zzmoove/up_threshold_hotplug_freq2
-		echo "1300000" >/sys/devices/system/cpu/cpufreq/zzmoove/up_threshold_hotplug_freq3
+		echo "1000000" >/sys/devices/system/cpu/cpufreq/zzmoove/up_threshold_hotplug_freq1
+		echo "1200000" >/sys/devices/system/cpu/cpufreq/zzmoove/up_threshold_hotplug_freq2
+		echo "1400000" >/sys/devices/system/cpu/cpufreq/zzmoove/up_threshold_hotplug_freq3
 
 		# hotplug down threshold per core
 		echo "70" >/sys/devices/system/cpu/cpufreq/zzmoove/down_threshold_hotplug1
@@ -783,8 +783,8 @@ if [ "apply_governor_profile" == "$1" ]; then
 		echo "90" >/sys/devices/system/cpu/cpufreq/zzmoove/down_threshold_hotplug3
 
 		echo "800000" >/sys/devices/system/cpu/cpufreq/zzmoove/down_threshold_hotplug_freq1
-		echo "900000" >/sys/devices/system/cpu/cpufreq/zzmoove/down_threshold_hotplug_freq2
-		echo "1100000" >/sys/devices/system/cpu/cpufreq/zzmoove/down_threshold_hotplug_freq3
+		echo "1000000" >/sys/devices/system/cpu/cpufreq/zzmoove/down_threshold_hotplug_freq2
+		echo "1200000" >/sys/devices/system/cpu/cpufreq/zzmoove/down_threshold_hotplug_freq3
 
 		# hotplug block cycles
 		echo "0" >/sys/devices/system/cpu/cpufreq/zzmoove/hotplug_block_cycles
@@ -813,18 +813,18 @@ if [ "apply_governor_profile" == "$1" ]; then
 		echo "90" >/sys/devices/system/cpu/cpufreq/zzmoove/up_threshold_hotplug2
 		echo "98" >/sys/devices/system/cpu/cpufreq/zzmoove/up_threshold_hotplug3
 
-		echo "700000" >/sys/devices/system/cpu/cpufreq/zzmoove/up_threshold_hotplug_freq1
-		echo "1000000" >/sys/devices/system/cpu/cpufreq/zzmoove/up_threshold_hotplug_freq2
-		echo "1200000" >/sys/devices/system/cpu/cpufreq/zzmoove/up_threshold_hotplug_freq3
+		echo "1000000" >/sys/devices/system/cpu/cpufreq/zzmoove/up_threshold_hotplug_freq1
+		echo "1200000" >/sys/devices/system/cpu/cpufreq/zzmoove/up_threshold_hotplug_freq2
+		echo "1400000" >/sys/devices/system/cpu/cpufreq/zzmoove/up_threshold_hotplug_freq3
 
 		# hotplug down threshold per core
 		echo "65" >/sys/devices/system/cpu/cpufreq/zzmoove/down_threshold_hotplug1
 		echo "75" >/sys/devices/system/cpu/cpufreq/zzmoove/down_threshold_hotplug2
 		echo "85" >/sys/devices/system/cpu/cpufreq/zzmoove/down_threshold_hotplug3
 
-		echo "600000" >/sys/devices/system/cpu/cpufreq/zzmoove/down_threshold_hotplug_freq1
-		echo "800000" >/sys/devices/system/cpu/cpufreq/zzmoove/down_threshold_hotplug_freq2
-		echo "1000000" >/sys/devices/system/cpu/cpufreq/zzmoove/down_threshold_hotplug_freq3
+		echo "800000" >/sys/devices/system/cpu/cpufreq/zzmoove/down_threshold_hotplug_freq1
+		echo "1000000" >/sys/devices/system/cpu/cpufreq/zzmoove/down_threshold_hotplug_freq2
+		echo "1200000" >/sys/devices/system/cpu/cpufreq/zzmoove/down_threshold_hotplug_freq3
 
 		# hotplug block cycles
 		echo "0" >/sys/devices/system/cpu/cpufreq/zzmoove/hotplug_block_cycles
