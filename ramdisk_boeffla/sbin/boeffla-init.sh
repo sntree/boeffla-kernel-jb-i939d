@@ -39,23 +39,7 @@
 	/sbin/busybox grep ro.build.version /system/build.prop >> $BOEFFLA_LOGFILE
 	echo "=========================" >> $BOEFFLA_LOGFILE
 
-# Fix missing start sound (for better compatibility of boeffla sound)
-	/sbin/busybox mount -o remount,rw -t ext4 $SYSTEM_DEVICE /system
-
-	# if no startup sound existing in rom, copy a silent one now
-	# (for better boeffla sound compatibility)
-	if [ ! -f /system/media/audio/ui/PowerOn.ogg ]; then
-
-		/sbin/busybox cp /res/misc/PowerOn.ogg /system/media/audio/ui/PowerOn.ogg
-
-		echo $(date) Dummy start sound copied to fix potential Boeffla sound microphone issue >> $BOEFFLA_LOGFILE
-
-	fi
-
-	/sbin/busybox sync
-	/sbin/busybox mount -o remount,ro -t ext4 $SYSTEM_DEVICE /system
-
-# Correct directory and file permissions
+# Correct /sbin and /res directory and file permissions
 	/sbin/busybox mount -o remount,rw /
 
 	# change permissions of /sbin folder and scripts in /res/bc
@@ -83,7 +67,6 @@
 		echo $(date) Boeffla-Sound change delay set to 200 ms >> $BOEFFLA_LOGFILE
 	fi
 
-
 # Set the options which change the stock kernel defaults
 # to Boeffla-Kernel defaults
 
@@ -110,7 +93,35 @@
 	while ! /sbin/busybox pgrep android.process.acore ; do
 	  /sbin/busybox sleep 1
 	done
-	echo $(date) Rom boot trigger detected, continuing after 12 more seconds... >> $BOEFFLA_LOGFILE
+	echo $(date) Rom boot trigger detected... >> $BOEFFLA_LOGFILE
+
+# Play sound for Boeffla-Sound compatibility
+	/sbin/tinyplay /res/misc/silence.wav -D 0 -d 0 -p 880
+
+# Interaction with Boeffla-Config app V2
+	# save original stock values for selected parameters
+	cat /sys/devices/system/cpu/cpu0/cpufreq/UV_mV_table > /dev/bk_orig_cpu_voltage
+	cat /sys/class/misc/gpu_clock_control/gpu_control > /dev/bk_orig_gpu_clock
+	cat /sys/class/misc/gpu_voltage_control/gpu_control > /dev/bk_orig_gpu_voltage
+	cat /sys/kernel/charge_levels/charge_level_ac > /dev/bk_orig_charge_level_ac
+	cat /sys/kernel/charge_levels/charge_level_usb > /dev/bk_orig_charge_level_usb
+	cat /sys/kernel/charge_levels/charge_level_wireless > /dev/bk_orig_charge_level_wireless
+	cat /sys/module/lowmemorykiller/parameters/minfree > /dev/bk_orig_minfree
+	/sbin/busybox lsmod > /dev/bk_orig_modules
+
+	# remove old startconfig done file
+	/sbin/busybox rm -f $BOEFFLA_DATA_PATH/startconfig_done
+
+	# if there is a startconfig placed by Boeffla-Config V2 app, execute it
+	if [ -f $BOEFFLA_DATA_PATH/startconfig ]; then
+		echo "Startup configuration found, applying now the following:"  >> $BOEFFLA_LOGFILE
+		cat $BOEFFLA_DATA_PATH/startconfig >> $BOEFFLA_LOGFILE
+		. $BOEFFLA_DATA_PATH/startconfig
+		echo "Startup configuration applied."  >> $BOEFFLA_LOGFILE
+	fi
+	
+# Wait for another 12 seconds before we continue
+	echo $(date) Waiting 12 more seconds... >> $BOEFFLA_LOGFILE
 	/sbin/busybox sleep 12
 
 # Cleanup: delete the old scriptmanager and dialog helper app

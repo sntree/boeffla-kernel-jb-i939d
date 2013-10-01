@@ -368,7 +368,7 @@ if [ "get_tunables" == "$1" ]; then
 fi
 
 
-if [ "get_kernel_version" == "$1" ]; then
+if [ "get_kernel_version2" == "$1" ]; then
 	busybox cat /proc/version
 	exit 0
 fi
