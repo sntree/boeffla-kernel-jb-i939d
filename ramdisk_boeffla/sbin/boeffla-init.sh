@@ -113,10 +113,10 @@
 	/sbin/busybox rm -f $BOEFFLA_DATA_PATH/startconfig_done
 
 	# if there is a startconfig placed by Boeffla-Config V2 app, execute it
-	if [ -f $BOEFFLA_DATA_PATH/startconfig ]; then
+	if [ -f /data/.boeffla/startconfig ]; then
 		echo "Startup configuration found, applying now the following:"  >> $BOEFFLA_LOGFILE
-		cat $BOEFFLA_DATA_PATH/startconfig >> $BOEFFLA_LOGFILE
-		. $BOEFFLA_DATA_PATH/startconfig
+		cat /data/.boeffla/startconfig >> $BOEFFLA_LOGFILE
+		. /data/.boeffla/startconfig
 		echo "Startup configuration applied."  >> $BOEFFLA_LOGFILE
 	fi
 	
