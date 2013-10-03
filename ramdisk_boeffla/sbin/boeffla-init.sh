@@ -15,7 +15,10 @@
 		BOEFFLA_DATA_PATH="/data/media/0/boeffla-kernel-data"
 		KERNEL="CM"
 	fi
+
 	BOEFFLA_LOGFILE="$BOEFFLA_DATA_PATH/boeffla-kernel.log"
+	BOEFFLA_STARTCONFIG="/data/.boeffla/startconfig"
+	BOEFFLA_STARTCONFIG_DONE="/data/media/startconfig_done"
 
 # If not yet exists, create a boeffla-kernel-data folder on sdcard 
 # which is used for many purposes (set permissions and owners correctly)
@@ -110,19 +113,19 @@
 	/sbin/busybox lsmod > /dev/bk_orig_modules
 
 	# remove old startconfig done file
-	/sbin/busybox rm -f $BOEFFLA_DATA_PATH/startconfig_done
+	/sbin/busybox rm -f $BOEFFLA_STARTCONFIG_DONE
 
 	# if there is a startconfig placed by Boeffla-Config V2 app, execute it
-	if [ -f /data/.boeffla/startconfig ]; then
-		echo "Startup configuration found, applying now the following:"  >> $BOEFFLA_LOGFILE
-		cat /data/.boeffla/startconfig >> $BOEFFLA_LOGFILE
-		. /data/.boeffla/startconfig
-		echo "Startup configuration applied."  >> $BOEFFLA_LOGFILE
+	if [ -f $BOEFFLA_STARTCONFIG ]; then
+		echo $(date) "Startup configuration found:"  >> $BOEFFLA_LOGFILE
+		cat $BOEFFLA_STARTCONFIG >> $BOEFFLA_LOGFILE
+		. $BOEFFLA_STARTCONFIG
+		echo $(date) Startup configuration applied  >> $BOEFFLA_LOGFILE
 	fi
 	
-# Wait for another 12 seconds before we continue
-	echo $(date) Waiting 12 more seconds... >> $BOEFFLA_LOGFILE
-	/sbin/busybox sleep 12
+# Wait for another 3 seconds before we continue
+	echo $(date) Waiting 3 more seconds... >> $BOEFFLA_LOGFILE
+	/sbin/busybox sleep 3
 
 # Cleanup: delete the old scriptmanager and dialog helper app
 # and delete old config scripts in init.d
