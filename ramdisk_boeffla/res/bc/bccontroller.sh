@@ -1647,6 +1647,7 @@ if [ "archive_kernel" == "$1" ]; then
 	busybox tar cvf $3.tar ${IMGPATH##*/}
 	busybox md5sum $3.tar >> $3.tar
 	busybox mv $3.tar $3.tar.md5
+	busybox chmod 666 $3.tar.md5
 	busybox rm $2
 	exit 0
 fi
