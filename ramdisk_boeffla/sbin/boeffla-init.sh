@@ -18,7 +18,7 @@
 
 	BOEFFLA_LOGFILE="$BOEFFLA_DATA_PATH/boeffla-kernel.log"
 	BOEFFLA_STARTCONFIG="/data/.boeffla/startconfig"
-	BOEFFLA_STARTCONFIG_DONE="/data/media/startconfig_done"
+	BOEFFLA_STARTCONFIG_DONE="/data/.boeffla/startconfig_done"
 
 # If not yet exists, create a boeffla-kernel-data folder on sdcard 
 # which is used for many purposes (set permissions and owners correctly)
