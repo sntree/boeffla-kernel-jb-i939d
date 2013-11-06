@@ -544,6 +544,10 @@ struct modemctl_ops {
 	int (*modem_boot_done) (struct modem_ctl *);
 	int (*modem_force_crash_exit) (struct modem_ctl *);
 	int (*modem_dump_reset) (struct modem_ctl *);
+#if defined(CONFIG_MACH_GRANDE) || defined(CONFIG_MACH_T0_CHN_CTC) \
+	|| defined(CONFIG_MACH_M0_DUOSCTC)
+	int (*modem_force_cp2_crash_exit) (struct modem_ctl *);
+#endif
 };
 
 /* for IPC Logger */

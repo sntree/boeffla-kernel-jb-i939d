@@ -840,7 +840,7 @@ static int s5c73m3_power_on(void)
 
 	printk(KERN_DEBUG "%s: in\n", __func__);
 
-#ifndef CONFIG_VIDEO_SLP_S5C73M3
+#if !defined(CONFIG_VIDEO_SLP_S5C73M3) && !defined(CONFIG_MACH_M0_DUOSCTC)
 	s5c73m3_check_vdd_core();
 #endif
 	printk(KERN_DEBUG "s5c73m3 vddCore : %d\n", vddCore);

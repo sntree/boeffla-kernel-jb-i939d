@@ -1153,8 +1153,18 @@ static long misc_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 
 	case IOCTL_MODEM_FORCE_CRASH_EXIT:
 		mif_debug("misc_ioctl : IOCTL_MODEM_FORCE_CRASH_EXIT\n");
+#if defined(CONFIG_MACH_GRANDE) || defined(CONFIG_MACH_T0_CHN_CTC) \
+	|| defined(CONFIG_MACH_M0_DUOSCTC)
+		ret = 0;
+		if (iod->mc->ops.modem_force_crash_exit)
+			ret = iod->mc->ops.modem_force_crash_exit(iod->mc);
+		if (iod->mc->ops.modem_force_cp2_crash_exit)
+			ret |= iod->mc->ops.modem_force_cp2_crash_exit(iod->mc);
+		return ret;
+#else
 		if (iod->mc->ops.modem_force_crash_exit)
 			return iod->mc->ops.modem_force_crash_exit(iod->mc);
+#endif
 		return -EINVAL;
 
 	case IOCTL_MODEM_CP_UPLOAD:

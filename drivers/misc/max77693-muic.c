@@ -43,6 +43,9 @@
 #include <linux/extcon.h>
 
 #define DEV_NAME	"max77693-muic"
+#if defined(CONFIG_MACH_IRON) || defined(CONFIG_MACH_GRANDE) || defined(CONFIG_MACH_T0_CHN_CTC) || defined(CONFIG_MACH_M0_DUOSCTC)
+#define REGARD_442K_AS_523K
+#endif
 
 /* for providing API */
 static struct max77693_muic_info *gInfo;
@@ -173,6 +176,9 @@ struct max77693_muic_info {
 static int if_muic_info;
 static int switch_sel;
 static int if_pmic_rev;
+#if defined(REGARD_442K_AS_523K)
+static int is_factory_mode = -1;
+#endif
 
 /* func : get_if_pmic_inifo
  * switch_sel value get from bootloader comand line
@@ -397,6 +403,68 @@ static int max77693_muic_set_audio_path_pass2
 }
 #endif
 
+#if defined(REGARD_442K_AS_523K)
+static void max77693_muic_force_uart_switch(int uart_path)
+{
+	u8 ctrl1_mask, ctrl1_val;
+	u8 ctrl2_val;
+	u8 gpio_uart_sel = 0;
+
+	switch (uart_path)	{
+	case UART_PATH_CP:
+		/* Switch UART path to MASTER (PMB9811C, infinion) */
+		pr_info("[%s] Force UART path switch to CP (infi)\n",
+				__func__);
+		ctrl1_val =
+			(MAX77693_MUIC_CTRL1_BIN_5_101<<COMN1SW_SHIFT) |
+			(MAX77693_MUIC_CTRL1_BIN_5_101<<COMP2SW_SHIFT);
+		ctrl1_mask = COMN1SW_MASK | COMP2SW_MASK;
+		gpio_uart_sel = GPIO_LEVEL_LOW;
+		break;
+	case UART_PATH_CP_ESC:
+		/* Switch UART path to SLAVE (ESC6270, qualcomm) */
+		pr_info("[%s] Force UART path switch to CP (esc)\n",
+				__func__);
+		ctrl1_val =
+			(MAX77693_MUIC_CTRL1_BIN_5_101<<COMN1SW_SHIFT) |
+			(MAX77693_MUIC_CTRL1_BIN_5_101<<COMP2SW_SHIFT);
+		ctrl1_mask = COMN1SW_MASK | COMP2SW_MASK;
+		gpio_uart_sel = GPIO_LEVEL_HIGH;
+		break;
+	case UART_PATH_AP:
+		/* Switch UART path to AP */
+		pr_info("[%s] Force UART path switch to AP\n",
+				__func__);
+		ctrl1_val =
+			(MAX77693_MUIC_CTRL1_BIN_3_011<<COMN1SW_SHIFT) |
+			(MAX77693_MUIC_CTRL1_BIN_3_011<<COMP2SW_SHIFT);
+		ctrl1_mask = COMN1SW_MASK | COMP2SW_MASK;
+		break;
+	default:
+		pr_info("[%s] wrong uart_path, return\n", __func__);
+		return;
+		break;
+	}
+
+	max77693_update_reg(gInfo->muic, MAX77693_MUIC_REG_CTRL1,
+						ctrl1_val, ctrl1_mask);
+	max77693_update_reg(gInfo->muic,
+					MAX77693_MUIC_REG_CTRL2,
+					0 << CTRL2_ACCDET_SHIFT,
+					CTRL2_ACCDET_MASK);
+	max77693_read_reg(gInfo->muic, MAX77693_MUIC_REG_CTRL1, &ctrl1_val);
+	max77693_read_reg(gInfo->muic, MAX77693_MUIC_REG_CTRL2, &ctrl2_val);
+	pr_info("[%s] REG_CTRL1=0x%x, REG_CTRL2=0x%x\n",
+			__func__, ctrl1_val, ctrl2_val);
+	if (uart_path != UART_PATH_AP)
+		gpio_set_value(GPIO_UART_SEL, gpio_uart_sel);
+	pr_info("[%s] GPIO_UART_SEL(%d)\n",
+			__func__, gpio_get_value(GPIO_UART_SEL));
+
+}
+#endif
+
+
 static ssize_t max77693_muic_show_usb_state(struct device *dev,
 					    struct device_attribute *attr,
 					    char *buf)
@@ -497,6 +565,74 @@ static ssize_t max77693_muic_show_manualsw(struct device *dev,
 	return sprintf(buf, "UNKNOWN\n");
 }
 
+#if defined(CONFIG_SWITCH_USB_PATH_AUTO)
+/*
+When execute the 'DUN' function. the USB path is switched automatically
+without reconnecting the USB
+*/
+static int max77693_muic_set_usb_path(struct max77693_muic_info *info, int path);
+static ssize_t max77693_muic_set_manualsw(struct device *dev,
+					  struct device_attribute *attr,
+					  const char *buf, size_t count)
+{
+	struct max77693_muic_info *info = dev_get_drvdata(dev);
+	struct max77693_muic_data *mdata = info->muic_data;
+
+	dev_info(info->dev, "func:%s buf:%s,count:%d\n", __func__, buf, count);
+
+	if (!strncasecmp(buf, "PDA", 3)) {
+		info->muic_data->sw_path = AP_USB_MODE;
+
+		if (mdata->usb_cb)
+				mdata->usb_cb(USB_CABLE_ATTACHED);
+#if defined(CONFIG_MACH_M0_CTC) || defined(CONFIG_MACH_T0_CHN_CTC)
+		if (system_rev < 11) {
+			gpio_direction_output(GPIO_USB_BOOT_EN, 0);
+		} else if (system_rev == 11) {
+			gpio_direction_output(GPIO_USB_BOOT_EN, 0);
+			gpio_direction_output(GPIO_USB_BOOT_EN_REV06, 0);
+		} else {
+			gpio_direction_output(GPIO_USB_BOOT_EN_REV06, 0);
+		}
+#endif
+		max77693_muic_set_usb_path(info, AP_USB_MODE);
+		dev_info(info->dev, "%s: AP_USB_MODE\n", __func__);
+	} else if (!strncasecmp(buf, "MODEM", 5)) {
+		info->muic_data->sw_path = CP_USB_MODE;
+
+		if (mdata->usb_cb)
+				mdata->usb_cb(USB_CABLE_DETACHED);
+#if defined(CONFIG_MACH_M0_CTC) || defined(CONFIG_MACH_T0_CHN_CTC)
+		if (system_rev < 11) {
+			gpio_direction_output(GPIO_USB_BOOT_EN, 1);
+		} else if (system_rev == 11) {
+			gpio_direction_output(GPIO_USB_BOOT_EN, 1);
+			gpio_direction_output(GPIO_USB_BOOT_EN_REV06, 1);
+		} else {
+			gpio_direction_output(GPIO_USB_BOOT_EN_REV06, 1);
+		}
+#endif
+		max77693_muic_set_usb_path(info, CP_USB_MODE);
+
+#if defined(CONFIG_SWITCH_DUAL_MODEM)
+		gpio_set_value(GPIO_USB_SEL, GPIO_LEVEL_LOW);
+		dev_info(info->dev, "%s: MODEM %d\n", __func__,
+			gpio_get_value(GPIO_USB_SEL));
+#endif
+		dev_info(info->dev, "%s: CP_USB_MODE\n", __func__);
+#if defined(CONFIG_SWITCH_DUAL_MODEM)
+	} else if (!strncasecmp(buf, "ESC", 3)) {
+		info->muic_data->sw_path = CP_ESC_USB_MODE;
+		gpio_set_value(GPIO_USB_SEL, GPIO_LEVEL_HIGH);
+		dev_info(info->dev, "%s: ESC %d\n", __func__,
+			gpio_get_value(GPIO_USB_SEL));
+#endif
+	} else
+		dev_warn(info->dev, "%s: Wrong command\n", __func__);
+
+	return count;
+}
+#else
 static ssize_t max77693_muic_set_manualsw(struct device *dev,
 					  struct device_attribute *attr,
 					  const char *buf, size_t count)
@@ -528,6 +664,7 @@ static ssize_t max77693_muic_set_manualsw(struct device *dev,
 
 	return count;
 }
+#endif /*CONFIG_SWITCH_USB_PATH_AUTO*/
 
 static ssize_t max77693_muic_show_adc(struct device *dev,
 				      struct device_attribute *attr, char *buf)
@@ -708,12 +845,56 @@ static ssize_t max77693_muic_set_adc_debounce_time(struct device *dev,
 	return count;
 }
 
+#if defined(REGARD_442K_AS_523K)
+static ssize_t max77693_muic_show_is_factory_mode(struct device *dev,
+			struct device_attribute *attr, char *buf)
+{
+	struct max77693_muic_info *info = dev_get_drvdata(dev);
+	int ret;
+	u8 val;
+	pr_info("[%s][buf=%s]", __func__, buf);
+
+	if (!info->muic)
+		return sprintf(buf, "No I2C client\n");
+
+	return sprintf(buf, "%d\n", is_factory_mode);
+}
+
+static ssize_t max77693_muic_set_is_factory_mode(struct device *dev,
+				    struct device_attribute *attr,
+				    const char *buf, size_t count)
+{
+	struct max77693_muic_info *info = dev_get_drvdata(dev);
+	pr_info("[%s][buf=%s][cable_type=%d]", __func__, buf, info->cable_type);
+
+	if (!strncasecmp(buf, "0", 1)) {
+		is_factory_mode = 0;
+		if (info->cable_type ==
+				CABLE_TYPE_JIG_UART_OFF_MUIC)
+			max77693_muic_force_uart_switch(info->muic_data->uart_path);
+	} else if ((!strncasecmp(buf, "1", 1))) {
+		is_factory_mode = 1;
+		if (info->cable_type ==
+				CABLE_TYPE_JIG_UART_OFF_MUIC)
+			max77693_muic_force_uart_switch(UART_PATH_CP);
+	} else {
+		pr_info("[%s] wrong value", __func__);
+		return -1;
+	}
+
+	return count;
+}
+#endif
+
 static ssize_t max77693_muic_set_uart_sel(struct device *dev,
 					  struct device_attribute *attr,
 					  const char *buf, size_t count)
 {
 	struct max77693_muic_info *info = dev_get_drvdata(dev);
-
+#if defined(CONFIG_SWITCH_DUAL_MODEM)
+	int retry = 10;
+	int is_changed = 0;
+#endif	
 	if (info->max77693->pmic_rev < MAX77693_REV_PASS2) {
 #if !defined(CONFIG_MACH_T0) && !defined(CONFIG_MACH_M3) \
 	&& !defined(CONFIG_MACH_SLP_T0_LTE)
@@ -789,10 +970,15 @@ static ssize_t max77693_muic_set_uart_sel(struct device *dev,
 						"%s: CP %d\n",
 						__func__,
 						gpio_get_value(GPIO_UART_SEL));
+				msleep(10);
+				if(gpio_get_value(GPIO_UART_SEL))
+					goto gpioSetFail;
 			} else	{
 				dev_err(info->dev,
 						"%s: Change GPIO failed",
 						__func__);
+				msleep(10);
+				goto gpioSetFail;
 			}
 #endif
 		}
@@ -812,7 +998,7 @@ static ssize_t max77693_muic_set_uart_sel(struct device *dev,
 			int ret = max77693_muic_set_uart_path_pass2
 				(info, UART_PATH_CP);
 			if (ret >= 0)
-				info->muic_data->uart_path = UART_PATH_CP;
+				info->muic_data->uart_path = UART_PATH_CP_ESC;
 			else
 				dev_err(info->dev, "%s: Change(CP_ESC) fail!!"
 							, __func__);
@@ -822,10 +1008,18 @@ static ssize_t max77693_muic_set_uart_sel(struct device *dev,
 				dev_info(info->dev, "%s: ESC %d\n",
 						__func__,
 						gpio_get_value(GPIO_UART_SEL));
+
+				msleep(10);
+				if(!gpio_get_value(GPIO_UART_SEL))
+					goto gpioSetFail;				
+				
 			} else	{
 				dev_err(info->dev,
 						"%s: Change GPIO failed",
 						__func__);
+				msleep(10);
+				goto gpioSetFail;
+				
 			}
 		}
 #endif
@@ -836,6 +1030,38 @@ static ssize_t max77693_muic_set_uart_sel(struct device *dev,
 		}
 	}
 	return count;
+
+#if defined(CONFIG_SWITCH_DUAL_MODEM)
+gpioSetFail:
+	do{
+		if(info->muic_data->uart_path == UART_PATH_CP) {
+			if(gpio_get_value(GPIO_UART_SEL)){
+				gpio_set_value(GPIO_UART_SEL, GPIO_LEVEL_LOW);
+				dev_info(info->dev, "%s: CP %d\n",__func__, gpio_get_value(GPIO_UART_SEL));
+				mdelay(100);
+			}
+			if(!gpio_get_value(GPIO_UART_SEL)){
+				is_changed = 1;
+				dev_info(info->dev, "%s: again CP %d\n",__func__, gpio_get_value(GPIO_UART_SEL));
+			}
+		}
+		else if (info->muic_data->uart_path == UART_PATH_CP_ESC) {
+			if(!gpio_get_value(GPIO_UART_SEL)){
+				gpio_set_value(GPIO_UART_SEL, GPIO_LEVEL_HIGH);
+				dev_info(info->dev, "%s: ESC %d\n", __func__,gpio_get_value(GPIO_UART_SEL));
+				mdelay(100);
+			}
+			if(gpio_get_value(GPIO_UART_SEL)){
+				is_changed = 1;
+				dev_info(info->dev, "%s: again ESC %d\n",__func__, gpio_get_value(GPIO_UART_SEL));
+			}
+		}
+		retry--;
+		mdelay(100);
+	}while(retry && !is_changed);
+	is_changed = 0;
+	return count;
+#endif	
 }
 
 static ssize_t max77693_muic_show_uart_sel(struct device *dev,
@@ -1074,6 +1300,12 @@ static DEVICE_ATTR(check_cpboot, 0664,
 		max77693_muic_set_check_cpboot);
 #endif
 
+#if defined(REGARD_442K_AS_523K)
+static DEVICE_ATTR(is_factory_mode, 0664,
+		max77693_muic_show_is_factory_mode,
+		max77693_muic_set_is_factory_mode);
+#endif
+
 static struct attribute *max77693_muic_attributes[] = {
 	&dev_attr_uart_sel.attr,
 	&dev_attr_usb_state.attr,
@@ -1091,6 +1323,9 @@ static struct attribute *max77693_muic_attributes[] = {
 #endif /* !CONFIG_MUIC_MAX77693_SUPPORT_CAR_DOCK */
 #ifdef CONFIG_LTE_VIA_SWITCH
 	&dev_attr_check_cpboot.attr,
+#endif
+#if defined(REGARD_442K_AS_523K)
+	&dev_attr_is_factory_mode.attr,
 #endif
 	NULL
 };
@@ -2408,8 +2643,16 @@ static int max77693_muic_handle_attach(struct max77693_muic_info *info,
 		}
 			break;
 #endif
-	case ADC_CEA936ATYPE1_CHG:
 	case ADC_CEA936ATYPE2_CHG:
+#if defined(REGARD_442K_AS_523K)
+		pr_info("[%s] is_factory_mode=%d\n", __func__, is_factory_mode);
+		if (is_factory_mode==1)	{
+			info->cable_type = CABLE_TYPE_JIG_UART_OFF_MUIC;
+			max77693_muic_force_uart_switch(UART_PATH_CP);
+			break;
+		}
+#endif
+	case ADC_CEA936ATYPE1_CHG:
 	case ADC_OPEN:
 		switch (chgtyp) {
 		case CHGTYP_USB:

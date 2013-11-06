@@ -2235,6 +2235,7 @@ static int host_port_enable(int port, int enable)
 			goto exit;
 		}
 
+#if !defined(CONFIG_MACH_GRANDE) && !defined(CONFIG_MACH_M0_DUOSCTC)
 		gpio_direction_output(GPIO_USB_BOOT_EN, 0);
 		s3c_gpio_setpull(GPIO_USB_BOOT_EN, S3C_GPIO_PULL_NONE);
 		gpio_set_value(GPIO_USB_BOOT_EN, 0);
@@ -2312,6 +2313,7 @@ static int host_port_enable(int port, int enable)
 			gpio_set_value(GPIO_BOOT_SW_SEL_REV06, 1);
 
 		}
+#endif
 
 	}
 

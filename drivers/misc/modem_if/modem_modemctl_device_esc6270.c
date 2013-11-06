@@ -115,6 +115,13 @@ static int esc6270_reset(struct modem_ctl *mc)
 int esc6270_boot_on(struct modem_ctl *mc)
 {
 	struct link_device *ld = get_current_link(mc->iod);
+#if defined(CONFIG_LINK_DEVICE_DPRAM)
+	/* clear intr */
+	struct dpram_link_device *dpld = to_dpram_link_device(ld);
+	u16 recv_msg = dpld->recv_intr(dpld);
+
+	pr_info("[MODEM_IF:ESC] dpram intr: %x\n", recv_msg);
+#endif
 
 	pr_info("[MODEM_IF:ESC] <%s>\n", __func__);
 
@@ -124,6 +131,13 @@ int esc6270_boot_on(struct modem_ctl *mc)
 		return -ENXIO;
 	}
 	gpio_set_value(mc->gpio_flm_uart_sel, 1);
+
+	/* Send reset command if ESC6270 is still alive. */
+	if ( gpio_get_value(mc->gpio_phone_active) )
+	{
+		pr_info("[MODEM_IF:ESC] <%s> ESC is alive !\n", __func__);
+		dpld->send_intr(dpld, 0xabcf);
+	}
 
 	pr_info("  - ESC_PHONE_ON : %d, ESC_RESET_N : %d\n",
 			gpio_get_value(mc->gpio_cp_on),
@@ -204,15 +218,24 @@ static irqreturn_t phone_active_irq_handler(int irq, void *arg)
 			mc->iod->modem_state_changed(mc->iod, phone_state);
 	} else if (phone_reset && !phone_active) {
 		if (mc->phone_state == STATE_ONLINE) {
-			if (cp_dump_int)
 				phone_state = STATE_CRASH_EXIT;
-			else
-				phone_state = STATE_CRASH_RESET;
 			if (mc->iod && mc->iod->modem_state_changed)
 				mc->iod->modem_state_changed(mc->iod,
 							     phone_state);
 		}
-	} else {
+	}
+#if defined(CONFIG_MACH_GRANDE) || defined(CONFIG_MACH_T0_CHN_CTC) \
+	|| defined(CONFIG_MACH_M0_DUOSCTC)
+	else if (!phone_reset && !phone_active) {
+		if (mc->phone_state == STATE_ONLINE) {
+			phone_state = STATE_CRASH_EXIT;
+			if (mc->iod && mc->iod->modem_state_changed)
+				mc->iod->modem_state_changed(mc->iod,
+								 phone_state);
+		}
+	}
+#endif
+else {
 		phone_state = STATE_OFFLINE;
 		if (mc->iod && mc->iod->modem_state_changed)
 			mc->iod->modem_state_changed(mc->iod, phone_state);

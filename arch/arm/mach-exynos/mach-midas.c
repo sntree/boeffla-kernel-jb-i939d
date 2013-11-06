@@ -899,7 +899,8 @@ static void __init smdk4212_usbgadget_init(void)
 		s3c_device_android_usb.dev.platform_data;
 	if (android_pdata) {
 		unsigned int cdfs = 0;
-#if defined(CONFIG_MACH_M0_CTC) || defined(CONFIG_MACH_T0_CHN_CTC)
+#if defined(CONFIG_MACH_M0_CTC) || defined(CONFIG_MACH_T0_CHN_CTC) || \
+	defined(CONFIG_MACH_M0_DUOSCTC)
 		unsigned int newluns = 1;
 		cdfs = 1;   /* China CTC required CDFS */
 #elif defined(CONFIG_MACH_T0_USA_VZW)
@@ -1580,7 +1581,7 @@ static struct samsung_battery_platform_data samsung_battery_pdata = {
 
 #if defined(CONFIG_TARGET_LOCALE_KOR) || defined(CONFIG_MACH_M0_CTC) || \
 	defined(CONFIG_MACH_T0_USA_VZW) || defined(CONFIG_MACH_T0_USA_SPR) || \
-	defined(CONFIG_MACH_T0_USA_USCC)
+	defined(CONFIG_MACH_T0_USA_USCC) || defined(CONFIG_MACH_T0_CHN_CTC)
 	.abstimer_charge_duration = 8 * 60 * 60,
 	.abstimer_charge_duration_wpc = 8 * 60 * 60,
 	.abstimer_recharge_duration = 2 * 60 * 60,
@@ -1657,11 +1658,18 @@ static struct samsung_battery_platform_data samsung_battery_pdata = {
 	.freeze_stop_temp = -50,
 	.freeze_recovery_temp = 0,
 #endif
-#elif defined(CONFIG_MACH_M0_CTC)
+#elif defined(CONFIG_MACH_M0_CTC) || defined(CONFIG_MACH_T0_CHN_CTC)
+#if defined(CONFIG_MACH_M0_DUOSCTC)
+	.overheat_stop_temp = 660,
+	.overheat_recovery_temp = 440,
+	.freeze_stop_temp = -40,
+	.freeze_recovery_temp = 20,
+#else
 	.overheat_stop_temp = 640,
 	.overheat_recovery_temp = 430,
 	.freeze_stop_temp = -50,
 	.freeze_recovery_temp = 30,
+#endif
 #elif defined(CONFIG_MACH_GC1)
 	.overheat_stop_temp = 600,
 	.overheat_recovery_temp = 400,
@@ -1952,6 +1960,23 @@ static struct platform_device s3c_device_i2c10 = {
 #endif
 
 #ifdef CONFIG_SENSORS_AK8963C
+static struct i2c_gpio_platform_data i2c10_platdata = {
+	.sda_pin	= GPIO_MSENSOR_SDA_18V,
+	.scl_pin	= GPIO_MSENSOR_SCL_18V,
+	.udelay	= 2, /* 250KHz */
+	.sda_is_open_drain	= 0,
+	.scl_is_open_drain	= 0,
+	.scl_is_output_only = 0,
+};
+
+static struct platform_device s3c_device_i2c10 = {
+	.name	= "i2c-gpio",
+	.id	= 10,
+	.dev.platform_data	= &i2c10_platdata,
+};
+#endif
+
+#ifdef CONFIG_SENSORS_AK8963
 static struct i2c_gpio_platform_data i2c10_platdata = {
 	.sda_pin	= GPIO_MSENSOR_SDA_18V,
 	.scl_pin	= GPIO_MSENSOR_SCL_18V,

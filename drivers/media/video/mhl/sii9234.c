@@ -54,7 +54,8 @@
 /* #define __CONFIG_MHL_SWING_LEVEL__ */
 #define	__CONFIG_SS_FACTORY__
 #define	__CONFIG_MHL_DEBUG__
-#if defined(CONFIG_MACH_T0) || defined(CONFIG_MACH_M3)
+#if defined(CONFIG_MACH_T0) || defined(CONFIG_MACH_M3) \
+	|| defined(CONFIG_MACH_M0_DUOSCTC)
 #	define __CONFIG_MHL_VER_1_2__
 #else
 #	define __CONFIG_MHL_VER_1_1__
