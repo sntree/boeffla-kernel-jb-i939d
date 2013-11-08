@@ -4,7 +4,7 @@ KERNEL_BRANCH=Boeffla-Kernel
 KERNEL_VERSION=3.2
 
 export ARCH=arm
-export KBUILD_BUILD_USER="-"$KERNEL_BRANCH"-"$KERNEL_VERSION"-"`(date +%Y%m%d)`
+export KBUILD_BUILD_USER=$KERNEL_BRANCH"-"$KERNEL_VERSION"-"`(date +%Y%m%d)`
 export KBUILD_BUILD_HOST=sntree
 
 echo "Will build kernel " $KBUILD_BUILD_USER"@"$KBUILD_BUILD_HOST
