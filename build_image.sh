@@ -31,10 +31,10 @@ ${CROSS_COMPILE}strip --strip-unneeded $RAMFS_TMP/lib/modules/*
 
 
 # Remove and copy new boeffla specific configuration files into corresponding directory
-`rm -rf $RAMFS_TMP"/res"`
-`cp -R $BOEFFLA_RAMDISK"/res" $RAMFS_TMP`
-`rm -rf $RAMFS_TMP"/sbin/boeffla-*"`
-`rm -rf $RAMFS_TMP"/sbin/busybox"`
+rm -rf $RAMFS_TMP"/res"
+cp -R $BOEFFLA_RAMDISK"/res" $RAMFS_TMP
+rm -rf $RAMFS_TMP"/sbin/boeffla-*"
+rm -rf $RAMFS_TMP"/sbin/busybox"
 
 for f in $BOEFFLA_RAMDISK"/sbin/"*
 do
