@@ -62,6 +62,7 @@ struct touch_platform_data {
 	int        (*hw_power)(int);
 	int         (*hw_recov)(int);
 	int         (*irq_stat)(void);
+	int         (*led_power)(int);
 } __attribute__ ((packed));
 
 #endif /* _LINUX_TOUCH_PLATFORM_H */
