@@ -2211,6 +2211,9 @@ static struct platform_device *midas_devices[] __initdata = {
 #ifdef CONFIG_SENSORS_AK8963C
 	&s3c_device_i2c10,
 #endif
+#ifdef CONFIG_SENSORS_AK8963
+	&s3c_device_i2c10,
+#endif
 
 #ifdef CONFIG_SENSORS_LPS331
 	&s3c_device_i2c11,

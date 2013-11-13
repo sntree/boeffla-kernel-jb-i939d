@@ -894,6 +894,33 @@ static int get_midas_siop_level(int temp)
 		if (level > prev_level)
 			level = prev_level;
 	}
+#elif defined(CONFIG_M0_CHN_DUOSCTC)
+	if (temp > prev_temp) {
+		if (temp >= 640)
+			level = 4;
+		else if (temp >= 630)
+			level = 3;
+		else if (temp >= 580)
+			level = 2;
+		else if (temp >= 540)
+			level = 1;
+		else
+			level = 0;
+	} else {
+		if (temp < 510)
+			level = 0;
+		else if (temp < 540)
+			level = 1;
+		else if (temp < 580)
+			level = 2;
+		else if (temp < 630)
+			level = 3;
+		else
+			level = 4;
+
+		if (level > prev_level)
+			level = prev_level;
+	}
 #else
 	if (temp > prev_temp) {
 		if (temp >= 540)
