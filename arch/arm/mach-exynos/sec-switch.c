@@ -343,6 +343,9 @@ void max77693_muic_usb_cb(u8 usb_mode)
 #ifdef CONFIG_USB_OHCI_S5P
 		pm_runtime_get_sync(&s5p_device_ohci.dev);
 #endif
+#if defined(CONFIG_HAS_EARLYSUSPEND) && defined(CONFIG_FAST_BOOT)
+		host_noti_pdata->is_host_working = 1;
+#endif
 	} else if (usb_mode == USB_OTGHOST_DETACHED
 		|| usb_mode == USB_POWERED_HOST_DETACHED) {
 #ifdef CONFIG_USB_OHCI_S5P
@@ -360,6 +363,9 @@ void max77693_muic_usb_cb(u8 usb_mode)
 		}
 		else
 			host_noti_pdata->powered_booster(0);
+#endif
+#if defined(CONFIG_HAS_EARLYSUSPEND) && defined(CONFIG_FAST_BOOT)
+		host_noti_pdata->is_host_working = 0;
 #endif
 	}
 

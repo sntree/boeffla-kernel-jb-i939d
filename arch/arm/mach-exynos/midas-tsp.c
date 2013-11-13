@@ -1433,6 +1433,25 @@ static void melfas_register_callback(void *cb)
 	pr_debug("[TSP] melfas_register_callback\n");
 }
 
+#ifdef CONFIG_LCD_FREQ_SWITCH
+struct tsp_lcd_callbacks *lcd_callbacks;
+struct tsp_lcd_callbacks {
+	void (*inform_lcd)(struct tsp_lcd_callbacks *, bool);
+};
+
+void tsp_lcd_infom(bool en)
+{
+	if (lcd_callbacks && lcd_callbacks->inform_lcd)
+		lcd_callbacks->inform_lcd(lcd_callbacks, en);
+}
+
+static void melfas_register_lcd_callback(void *cb)
+{
+	lcd_callbacks = cb;
+	pr_debug("[TSP] melfas_register_lcd_callback\n");
+}
+#endif
+
 static struct melfas_tsi_platform_data mms_ts_pdata = {
 	.max_x = 720,
 	.max_y = 1280,
@@ -1449,11 +1468,14 @@ static struct melfas_tsi_platform_data mms_ts_pdata = {
 	.power = melfas_power,
 	.mux_fw_flash = melfas_mux_fw_flash,
 	.is_vdd_on = is_melfas_vdd_on,
-	.config_fw_version = "N7100_Me_0813",
+	.config_fw_version = "N7100_Me_0910",
 /*	.set_touch_i2c		= melfas_set_touch_i2c, */
 /*	.set_touch_i2c_to_gpio	= melfas_set_touch_i2c_to_gpio, */
 	.lcd_type = melfas_get_lcdtype,
 	.register_cb = melfas_register_callback,
+#ifdef CONFIG_LCD_FREQ_SWITCH
+	.register_lcd_cb = melfas_register_lcd_callback,
+#endif
 };
 
 static struct i2c_board_info i2c_devs3[] = {
@@ -1945,6 +1967,33 @@ int cyttsp4_irq_stat(void)
 	return irq_stat;
 }
 
+int cyttsp4_led_power(int on)
+{
+	if (on) {
+		s3c_gpio_cfgpin(GPIO_LED_VDD_EN, S3C_GPIO_OUTPUT);
+		s3c_gpio_setpull(GPIO_LED_VDD_EN, S3C_GPIO_PULL_NONE);
+		gpio_direction_output(GPIO_LED_VDD_EN, GPIO_LEVEL_HIGH);
+		mdelay(1);
+
+		s3c_gpio_cfgpin(GPIO_KEY_LED_CTRL, S3C_GPIO_OUTPUT);
+		s3c_gpio_setpull(GPIO_KEY_LED_CTRL, S3C_GPIO_PULL_NONE);
+		gpio_direction_output(GPIO_KEY_LED_CTRL, GPIO_LEVEL_HIGH);
+
+		return 1;
+	} else {
+		s3c_gpio_setpull(GPIO_KEY_LED_CTRL, S3C_GPIO_PULL_NONE);
+		gpio_direction_output(GPIO_KEY_LED_CTRL, GPIO_LEVEL_LOW);
+		mdelay(1);
+
+		s3c_gpio_setpull(GPIO_LED_VDD_EN, S3C_GPIO_PULL_NONE);
+		gpio_direction_output(GPIO_LED_VDD_EN, GPIO_LEVEL_LOW);
+
+		return 1;
+	}
+
+	return -1;
+}
+
 struct touch_platform_data cyttsp4_i2c_touch_platform_data = {
 	.sett = {
 		NULL,	/* Reserved */
@@ -1971,6 +2020,7 @@ struct touch_platform_data cyttsp4_i2c_touch_platform_data = {
 	.hw_power = cyttsp4_hw_power,
 	.hw_recov = cyttsp4_hw_recov,
 	.irq_stat = cyttsp4_irq_stat,
+	.led_power = cyttsp4_led_power,
 };
 
 static struct i2c_board_info i2c_devs3[] = {
@@ -2009,6 +2059,17 @@ void __init midas_tsp_init(void)
 	printk(KERN_INFO "%s touch : %d\n", __func__, i2c_devs3[0].irq);
 
 	i2c_register_board_info(3, i2c_devs3, ARRAY_SIZE(i2c_devs3));
+
+	gpio = GPIO_LED_VDD_EN;
+	ret = gpio_request(gpio, "LED_VDD_EN");
+	if (ret)
+		pr_err("failed to request gpio(LED_VDD_EN)\n");
+
+	gpio = GPIO_KEY_LED_CTRL;
+	ret = gpio_request(gpio, "KEY_LED_CTRL");
+	if (ret)
+		pr_err("failed to request gpio(KEY_LED_CTRL)\n");
+
 }
 
 #else /* CONFIG_TOUCHSCREEN_ATMEL_MXT224_U1 */
