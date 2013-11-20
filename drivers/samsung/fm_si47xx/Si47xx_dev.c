@@ -1023,8 +1023,6 @@ int Si47xx_dev_RSSI_seek_th_set(u8 seek_th)
 	} else {
 		si47xx_set_property(FM_SEEK_TUNE_RSSI_THRESHOLD, seek_th);
 		Si47xx_dev->settings.curr_rssi_th = seek_th;
-		if (ret < 0)
-			debug("Si47xx_dev_RSSI_seek_th_set i2c_write 1 failed");
 	}
 	mutex_unlock(&(Si47xx_dev->lock));
 
@@ -1326,7 +1324,7 @@ int Si47xx_dev_volume_set(u8 volume)
 	int ret = 0;
 
 	debug("Si47xx_dev_volume_set called");
-	if (volume < 0 || volume >= SI47XX_VOLUME_NUM)
+	if (volume >= SI47XX_VOLUME_NUM)
 		return -EINVAL;
 
 	mutex_lock(&(Si47xx_dev->lock));

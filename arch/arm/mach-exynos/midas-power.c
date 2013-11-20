@@ -638,7 +638,9 @@ static struct max77686_regulator_data max77686_regulators[] = {
 	{MAX77686_LDO12, &ldo12_init_data,},
 #if defined(CONFIG_MACH_C1_KOR_SKT) || defined(CONFIG_MACH_C1_KOR_KT) || \
 	defined(CONFIG_MACH_C1_KOR_LGT) || defined(CONFIG_MACH_C1) || \
-	defined(CONFIG_MACH_M0_DUOSCTC) || defined(CONFIG_MACH_M0_GRANDECTC)
+	defined(CONFIG_MACH_M0_DUOSCTC) || \
+	defined(CONFIG_MACH_M0_GRANDECTC) || \
+	defined(CONFIG_MACH_M3_USA_TMO)
 	{MAX77686_LDO13, &ldo13_init_data,},
 #endif
 	{MAX77686_LDO14, &ldo14_init_data,},
@@ -661,7 +663,9 @@ struct max77686_opmode_data max77686_opmode_data[MAX77686_REG_MAX] = {
 	[MAX77686_LDO12] = {MAX77686_LDO12, MAX77686_OPMODE_STANDBY},
 #if defined(CONFIG_MACH_C1_KOR_SKT) || defined(CONFIG_MACH_C1_KOR_KT) || \
 	defined(CONFIG_MACH_C1_KOR_LGT) || defined(CONFIG_MACH_C1) || \
-	defined(CONFIG_MACH_M0_DUOSCTC) || defined(CONFIG_MACH_M0_GRANDECTC)
+	defined(CONFIG_MACH_M0_DUOSCTC) || \
+	defined(CONFIG_MACH_M0_GRANDECTC) || \
+	defined(CONFIG_MACH_M3_USA_TMO)
 	[MAX77686_LDO13] = {MAX77686_LDO13, MAX77686_OPMODE_NORMAL},
 #endif
 	[MAX77686_LDO14] = {MAX77686_LDO14, MAX77686_OPMODE_STANDBY},

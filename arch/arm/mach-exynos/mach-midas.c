@@ -416,10 +416,10 @@ static int touchkey_led_power_on(bool on)
 		else
 			gpio_direction_output(GPIO_3_TOUCH_EN_R1, 0);
 	} else {
-	if (on)
-		gpio_direction_output(GPIO_3_TOUCH_EN, 1);
-	else
-		gpio_direction_output(GPIO_3_TOUCH_EN, 0);
+		if (on)
+			gpio_direction_output(GPIO_3_TOUCH_EN, 1);
+		else
+			gpio_direction_output(GPIO_3_TOUCH_EN, 0);
 	}
 #else
 	if (on)
@@ -2914,15 +2914,15 @@ static void felica_setup(void)
 		s3c_gpio_setpull(FELICA_GPIO_I2C_SCL_R1, S3C_GPIO_PULL_DOWN);
 		gpio_free(FELICA_GPIO_I2C_SCL_R1);
 	} else {
-	/* I2C SDA GPY2[4] */
-	gpio_request(FELICA_GPIO_I2C_SDA, FELICA_GPIO_I2C_SDA_NAME);
-	s3c_gpio_setpull(FELICA_GPIO_I2C_SDA, S3C_GPIO_PULL_DOWN);
-	gpio_free(FELICA_GPIO_I2C_SDA);
+		/* I2C SDA GPY2[4] */
+		gpio_request(FELICA_GPIO_I2C_SDA, FELICA_GPIO_I2C_SDA_NAME);
+		s3c_gpio_setpull(FELICA_GPIO_I2C_SDA, S3C_GPIO_PULL_DOWN);
+		gpio_free(FELICA_GPIO_I2C_SDA);
 
-	/* I2C SCL GPY2[5] */
-	gpio_request(FELICA_GPIO_I2C_SCL, FELICA_GPIO_I2C_SCL_NAME);
-	s3c_gpio_setpull(FELICA_GPIO_I2C_SCL, S3C_GPIO_PULL_DOWN);
-	gpio_free(FELICA_GPIO_I2C_SCL);
+		/* I2C SCL GPY2[5] */
+		gpio_request(FELICA_GPIO_I2C_SCL, FELICA_GPIO_I2C_SCL_NAME);
+		s3c_gpio_setpull(FELICA_GPIO_I2C_SCL, S3C_GPIO_PULL_DOWN);
+		gpio_free(FELICA_GPIO_I2C_SCL);
 	}
 #elif defined(CONFIG_MACH_T0_JPN_LTE_DCM)
 	/* I2C SDA GPY2[4] */
