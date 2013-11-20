@@ -4,6 +4,7 @@ export RAMFS_SOURCE=`readlink -f $KERNELDIR/../SCH-I939D-Ramfs`
 export PARENT_DIR=`readlink -f ..`
 export USE_SEC_FIPS_MODE=true
 export CROSS_COMPILE=/opt/toolchains/arm-eabi-4.7/bin/arm-eabi-
+export VERSION=1.1
 
 BOEFFLA_RAMDISK="ramdisk_boeffla"
 
@@ -64,7 +65,7 @@ cd -
 #$KERNELDIR/mkshbootimg.py $KERNELDIR/boot.img $KERNELDIR/boot.img.pre
 #rm -f $KERNELDIR/boot.img.pre
 
-tar -H ustar -c boot.img > boot.tar
-md5sum -t boot.tar >> boot.tar
-mv boot.tar boot.tar.md5
+tar -H ustar -c boot.img > boot.$VERSION.tar
+md5sum -t boot.$VERSION.tar >> boot.$VERSION.tar
+mv boot.$VERSION.tar boot.$VERSION.tar.md5
 
