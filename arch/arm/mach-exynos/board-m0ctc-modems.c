@@ -353,6 +353,7 @@ static struct dpram_ipc_map msm_ipc_map;
 
 static struct modemlink_dpram_control msm_edpram_ctrl = {
 	.dp_type = EXT_DPRAM,
+	.disabled = true,
 
 	.dpram_irq = MSM_DPRAM_INT_IRQ,
 	.dpram_irq_flags = IRQF_TRIGGER_FALLING,
@@ -1265,6 +1266,7 @@ static struct sromc_access_cfg gsm_edpram_access_cfg[] = {
 
 static struct modemlink_dpram_control gsm_edpram_ctrl = {
 	.dp_type = EXT_DPRAM,
+	.disabled = true,
 
 	.dpram_irq = ESC_DPRAM_INT_IRQ,
 	.dpram_irq_flags = IRQF_TRIGGER_FALLING,

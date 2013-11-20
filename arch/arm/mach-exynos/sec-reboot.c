@@ -11,6 +11,7 @@ extern bool is_cable_attached;
 static void sec_power_off(void)
 {
 	int poweroff_try = 0;
+	int wait_for_cp_count = 10;
 
 	local_irq_disable();
 
@@ -35,6 +36,15 @@ static void sec_power_off(void)
 
 		/* wait for power button release */
 		if (gpio_get_value(GPIO_nPOWER)) {
+			
+#if defined(CONFIG_GSM_MODEM_ESC6270)			
+			while (gpio_get_value(GPIO_ESC_PHONE_ACTIVE) &&
+					wait_for_cp_count > 0)	{
+				pr_emerg("%s: wait for CP2 off\n", __func__);
+				mdelay(500);
+				wait_for_cp_count--;
+			}
+#endif
 			pr_emerg("%s: set PS_HOLD low\n", __func__);
 
 			/* power off code
@@ -64,6 +74,7 @@ static void sec_power_off(void)
 #define REBOOT_MODE_RECOVERY	4
 #define REBOOT_MODE_FOTA	5
 #define REBOOT_MODE_FOTA_BL	6	/* update bootloader */
+#define REBOOT_MODE_SECURE	7	/* image secure check fail */
 
 #define REBOOT_SET_PREFIX	0xabc00000
 #define REBOOT_SET_DEBUG	0x000d0000
@@ -96,6 +107,9 @@ static void sec_reboot(char str, const char *cmd)
 			       S5P_INFORM3);
 		else if (!strcmp(cmd, "upload"))
 			writel(REBOOT_MODE_PREFIX | REBOOT_MODE_UPLOAD,
+			       S5P_INFORM3);
+		else if (!strcmp(cmd, "secure"))
+			writel(REBOOT_MODE_PREFIX | REBOOT_MODE_SECURE,
 			       S5P_INFORM3);
 		else if (!strncmp(cmd, "debug", 5)
 			 && !kstrtoul(cmd + 5, 0, &value))
