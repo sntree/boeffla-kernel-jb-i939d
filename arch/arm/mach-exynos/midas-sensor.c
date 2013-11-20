@@ -236,7 +236,7 @@ static int accel_gpio_init(void)
 }
 #endif
 
-#ifdef CONFIG_SENSORS_LSM330DLC
+#if defined(CONFIG_SENSORS_LSM330DLC)
 static int gyro_gpio_init(void)
 {
 	int ret = gpio_request(GPIO_GYRO_INT, "lsm330dlc_gyro_irq");
@@ -471,6 +471,9 @@ static int ak8963c_gpio_init(void)
 	s3c_gpio_cfgpin(GPIO_MSENSE_RST_N, S3C_GPIO_OUTPUT);
 	s3c_gpio_setpull(GPIO_MSENSE_RST_N, S3C_GPIO_PULL_NONE);
 	gpio_direction_output(GPIO_MSENSE_RST_N, 1);
+    
+	/* Device will be accessible 100 us after */
+	udelay(100);
 
 	return ret;
 }
