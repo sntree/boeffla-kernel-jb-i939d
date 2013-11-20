@@ -170,7 +170,8 @@ DEFCONFIG=$OP"_00_defconfig"
 
 # Start build the kernel using four threads
 make $DEFCONFIG
-make -j4
+make -j4 CONFIG_DEBUG_SECTION_MISMATCH=y
+#make -j4
 
 
 check_zimage
