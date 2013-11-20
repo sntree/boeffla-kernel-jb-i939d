@@ -743,7 +743,7 @@ fail_hcd:
 	return err;
 }
 
-static int __devexit s5p_ehci_remove(struct platform_device *pdev)
+static int __devinit s5p_ehci_remove(struct platform_device *pdev)
 {
 	struct s5p_ehci_platdata *pdata = pdev->dev.platform_data;
 	struct s5p_ehci_hcd *s5p_ehci = platform_get_drvdata(pdev);
@@ -815,7 +815,7 @@ static const struct dev_pm_ops s5p_ehci_pm_ops = {
 
 static struct platform_driver s5p_ehci_driver = {
 	.probe		= s5p_ehci_probe,
-	.remove		= __devexit_p(s5p_ehci_remove),
+	.remove		= s5p_ehci_remove,
 	.shutdown	= s5p_ehci_shutdown,
 	.driver = {
 		.name	= "s5p-ehci",
