@@ -4,7 +4,7 @@ export RAMFS_SOURCE=`readlink -f $KERNELDIR/../SCH-I939D-Ramfs`
 export PARENT_DIR=`readlink -f ..`
 export USE_SEC_FIPS_MODE=true
 export CROSS_COMPILE=/opt/toolchains/arm-eabi-4.7/bin/arm-eabi-
-export VERSION=1.1
+export VERSION=1.2
 
 BOEFFLA_RAMDISK="ramdisk_boeffla"
 
