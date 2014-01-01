@@ -1,5 +1,7 @@
 /*
- * Author: andip71, 21.12.2012
+ * Author: andip71, 20.12.2013
+ * 
+ * Version: V2
  *
  * credits: Hardcore for the mdnie settings
  *          Gokhanmoral for some implementation ideas
@@ -22,87 +24,15 @@
 #include "s3cfb_mdnie.h"
 
 #include "mdnie.h"
-#include "mdnie_table_c1m0_pr0.h"
-#include "mdnie_table_c1m0_pr1.h"
+
+void mdnie_update(struct mdnie_info *mdnie);
 
 
 /*****************************************/
 // Static variables
 /*****************************************/
 
-static int mdnie_preset;
-
-
-/*****************************************/
-// Internal helper functions
-/*****************************************/
-
-static void update_mdnie_array (unsigned char *dest_name, const unsigned short source[])
-{
-	unsigned int i;
-	unsigned short *a;
-
-	// get pointer to desired destination table structure
-	a = (unsigned short *)(kallsyms_lookup_name(dest_name));
-
-	// in a loop, copy element by element over from the preset table
-	// (loop ends after 250 for security reasons if END_SEQ is somehow missing)
-	for (i = 0; i <= 250; i+=1)
-	{
-		if(source[i] == END_SEQ)
-			break;
-		a[i]=source[i];
-	}
-}
-
-
-static void write_mdnie_ui (unsigned char *dest_name,
-			const unsigned short source_dynamic[], const unsigned short source_movie[],
-			const unsigned short source_standard[],	const unsigned short source_natural[])
-{
-	struct mdnie_info *m;
-
-	// get pointer to global mdnie control structure
-	m = *((void **)kallsyms_lookup_name("g_mdnie"));
-
-	// send the sequence to the mdnie driver to reflect update instantly,
-	// based on currently configured screen mode
-	switch(m->mode)
-	{
-		case DYNAMIC:
-		{
-			mdnie_send_sequence(m, source_dynamic);
-			break;
-		}
-
-		case MOVIE:
-		{
-			mdnie_send_sequence(m, source_movie);
-			break;
-		}
-
-		case STANDARD:
-		{
-			mdnie_send_sequence(m, source_standard);
-			break;
-		}
-
-		case NATURAL:
-		{
-			mdnie_send_sequence(m, source_natural);
-			break;
-		}
-
-		case MODE_MAX:
-		{
-			break;
-		}
-	}
-
-	// print debug info
-	printk("Boeffla-kernel: mdnie control device updated for mode: %d\n", m->mode);
-}
-
+extern int mdnie_preset;
 
 
 /*****************************************/
@@ -121,6 +51,10 @@ static ssize_t mdnie_preset_store(struct device *dev, struct device_attribute *a
 {
 	unsigned int ret = -EINVAL;
 	unsigned int val = 0;
+	struct mdnie_info *m;
+
+	// get pointer to global mdnie control structure
+	m = *((void **)kallsyms_lookup_name("g_mdnie"));
 
 	// read value from input buffer
 	ret = sscanf(buf, "%d", &val);
@@ -131,77 +65,14 @@ static ssize_t mdnie_preset_store(struct device *dev, struct device_attribute *a
 		// store preset in global variable
 		mdnie_preset = val;
 
-		if (mdnie_preset == 0) // original Samsung mdnie settings
-		{
-			// update all mdnie control tables with the given preset
-			update_mdnie_array("tune_dynamic_gallery", tune_dynamic_gallery_pr0);
-			update_mdnie_array("tune_dynamic_ui", tune_dynamic_ui_pr0);
-			update_mdnie_array("tune_dynamic_video", tune_dynamic_video_pr0);
-			update_mdnie_array("tune_dynamic_vt", tune_dynamic_vt_pr0);
-			update_mdnie_array("tune_movie_gallery", tune_movie_gallery_pr0);
-			update_mdnie_array("tune_movie_ui", tune_movie_ui_pr0);
-			update_mdnie_array("tune_movie_video", tune_movie_video_pr0);
-			update_mdnie_array("tune_movie_vt", tune_movie_vt_pr0);
-			update_mdnie_array("tune_standard_gallery", tune_standard_gallery_pr0);
-			update_mdnie_array("tune_standard_ui", tune_standard_ui_pr0);
-			update_mdnie_array("tune_standard_video", tune_standard_video_pr0);
-			update_mdnie_array("tune_standard_vt", tune_standard_vt_pr0);
-			update_mdnie_array("tune_natural_gallery", tune_natural_gallery_pr0);
-			update_mdnie_array("tune_natural_ui", tune_natural_ui_pr0);
-			update_mdnie_array("tune_natural_video", tune_natural_video_pr0);
-			update_mdnie_array("tune_natural_vt", tune_natural_vt_pr0);
-			update_mdnie_array("tune_camera", tune_camera_pr0);
-			update_mdnie_array("tune_camera_outdoor", tune_camera_outdoor_pr0);
-			update_mdnie_array("tune_cold", tune_cold_pr0);
-			update_mdnie_array("tune_cold_outdoor", tune_cold_outdoor_pr0);
-			update_mdnie_array("tune_normal_outdoor", tune_normal_outdoor_pr0);
-			update_mdnie_array("tune_warm", tune_warm_pr0);
-			update_mdnie_array("tune_warm_outdoor", tune_warm_outdoor_pr0);
+		// update mdnie settings
+		mdnie_update(m);
 
-			// finally write ui preset, based on current scenario to mdnie controller
-			write_mdnie_ui("tune_standard_ui", tune_dynamic_ui_pr0, tune_movie_ui_pr0,
-							tune_standard_ui_pr0, tune_natural_ui_pr0);
-
-			// print debug info
+		// write debug info
+		if (mdnie_preset == 0)
 			printk("Boeffla-kernel: mdnie preset set to original\n");
-
-		}
-
-		if (mdnie_preset == 1) // Hardcore speedmod mdnie settings
-		{
-			// update all mdnie control tables with the given preset
-			update_mdnie_array("tune_dynamic_gallery", tune_dynamic_gallery_pr1);
-			update_mdnie_array("tune_dynamic_ui", tune_dynamic_ui_pr1);
-			update_mdnie_array("tune_dynamic_video", tune_dynamic_video_pr1);
-			update_mdnie_array("tune_dynamic_vt", tune_dynamic_vt_pr1);
-			update_mdnie_array("tune_movie_gallery", tune_movie_gallery_pr1);
-			update_mdnie_array("tune_movie_ui", tune_movie_ui_pr1);
-			update_mdnie_array("tune_movie_video", tune_movie_video_pr1);
-			update_mdnie_array("tune_movie_vt", tune_movie_vt_pr1);
-			update_mdnie_array("tune_standard_gallery", tune_standard_gallery_pr1);
-			update_mdnie_array("tune_standard_ui", tune_standard_ui_pr1);
-			update_mdnie_array("tune_standard_video", tune_standard_video_pr1);
-			update_mdnie_array("tune_standard_vt", tune_standard_vt_pr1);
-			update_mdnie_array("tune_natural_gallery", tune_natural_gallery_pr1);
-			update_mdnie_array("tune_natural_ui", tune_natural_ui_pr1);
-			update_mdnie_array("tune_natural_video", tune_natural_video_pr1);
-			update_mdnie_array("tune_natural_vt", tune_natural_vt_pr1);
-			update_mdnie_array("tune_camera", tune_camera_pr1);
-			update_mdnie_array("tune_camera_outdoor", tune_camera_outdoor_pr1);
-			update_mdnie_array("tune_cold", tune_cold_pr1);
-			update_mdnie_array("tune_cold_outdoor", tune_cold_outdoor_pr1);
-			update_mdnie_array("tune_normal_outdoor", tune_normal_outdoor_pr1);
-			update_mdnie_array("tune_warm", tune_warm_pr1);
-			update_mdnie_array("tune_warm_outdoor", tune_warm_outdoor_pr1);
-
-			// finally write ui preset, based on current scenario to mdnie controller
-			write_mdnie_ui("tune_standard_ui", tune_dynamic_ui_pr1, tune_movie_ui_pr1,
-							tune_standard_ui_pr1, tune_natural_ui_pr1);
-
-			// print debug info
+		else
 			printk("Boeffla-kernel: mdnie preset set to Hardcore speedmod\n");
-		}
-
 	}
 
 	return count;

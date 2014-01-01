@@ -1,50 +1,57 @@
-From 08090cbcc3b861f6757d0f17b5f7b5bcaf1446ee Mon Sep 17 00:00:00 2001
+From 135731801df2f416e05508ee4ec30e94c9f4aeaf Mon Sep 17 00:00:00 2001
 From: andip71 <andreasp@gmx.de>
-Date: Sat, 20 Apr 2013 16:45:12 +0200
-Subject: [PATCH] 2
+Date: Mon, 11 Nov 2013 16:41:14 +0100
+Subject: [PATCH] init.rc
 
 ---
- init.rc |   16 ++++++++--------
- 1 file changed, 8 insertions(+), 8 deletions(-)
+ init.rc | 22 +++++++++++++++-------
+ 1 file changed, 15 insertions(+), 7 deletions(-)
 
 diff --git a/init.rc b/init.rc
-index 3a5c03a..a6fc1bc 100755
+index a5324b1..385ca01 100755
 --- a/init.rc
 +++ b/init.rc
-@@ -597,7 +597,7 @@ on boot
-     write /sys/block/zram0/disksize 209715200
-     chmod 0664 /sys/block/zram0/initstate
-     chown system system /sys/block/zram0/initstate
--    write /sys/block/zram0/initstate 1
-+#	write /sys/block/zram0/initstate 1 (Prepare zram for swap but don't activate it yet)
+@@ -149,6 +149,10 @@ loglevel 3
+ # This is needed by any process that uses socket tagging.
+     chmod 0644 /dev/xt_qtaguid
  
- on nonencrypted
-     class_start late_start
-@@ -763,13 +763,6 @@ service bootanim /system/bin/bootanimation
++# ko files for exfat -> AP: modules instead compiled into kernel
++    insmod /lib/modules/exfat_core.ko
++    insmod /lib/modules/exfat_fs.ko
++    
+ on fs
+ # mount mtd partitions
+     # Mount /system rw first to give the filesystem a chance to save a checkpoint
+@@ -844,12 +848,12 @@ service powersnd /system/bin/samsungpowersoundplay
      disabled
      oneshot
  
--service samsungani /system/bin/samsungani
+-service bootanim /system/bin/bootanimation
 -    class main
 -    user graphics
 -    group graphics system
 -    disabled
 -    oneshot
--
- service dbus /system/bin/dbus-daemon --system --nofork
++# service bootanim /system/bin/bootanimation -> AP removed to allow custom boot animation
++#    class main
++#    user graphics
++#    group graphics system
++#    disabled
++#    oneshot
+ 
+ service installd /system/bin/installd
      class main
-     socket dbus stream 660 bluetooth bluetooth
-@@ -872,3 +865,10 @@ on property:ro.dumpstate.dmesg=1
- on property:init.svc.media=restarting
-     exec icd_check
-     start icd
-+
+@@ -966,4 +970,9 @@ on property:persist.sys.drs.enforce=1
+ on property:persist.sys.drs.enforce=0
+ 	start auditd
+ 	
+-	
 +# Call Boeffla-Kernel init script
 +service boeffla-init /sbin/boeffla-init.sh
-+    class core
++    class main
 +    user root
-+    oneshot
-+
++    group root
++    oneshot	
 -- 
-1.7.9.5
+1.8.1.2
 

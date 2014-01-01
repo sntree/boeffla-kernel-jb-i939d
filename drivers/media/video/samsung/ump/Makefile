@@ -25,7 +25,7 @@ endif
 
 
 # For UMP Debug
-ifeq ($(CONFIG_VIDEO_UMP_DEBUG),y)
+ifeq ($(CONFIG_MALI_400MP_UMP_DEBUG),y)
 DEFINES += -DDEBUG
 endif
 
@@ -41,7 +41,7 @@ KBUILDROOT =
 
 # linux build system integration
 
-obj-$(CONFIG_VIDEO_UMP)	+= ump.o
+obj-$(CONFIG_MALI_400MP_UMP)	+= ump.o
 
 # For customer releases the Linux Device Drivers will be provided as ARM proprietary and GPL releases:
 # The ARM proprietary product will only include the license/proprietary directory
@@ -88,10 +88,6 @@ EXTRA_CFLAGS += $(INCLUDES) \
 		
 # Get subversion revision number, fall back to 0000 if no svn info is available
 SVN_REV:=$(shell ((svnversion | grep -qv exported && echo -n 'Revision: ' && svnversion) || git svn info | sed -e 's/$$$$/M/' | grep '^Revision: ' || echo ${MALI_RELEASE_NAME}) 2>/dev/null | sed -e 's/^Revision: //')
-
-ifeq ($(findstring "Unversioned", $(SVN_REV)), )
-    SVN_REV:=0000
-endif
 		
 EXTRA_CFLAGS += -DSVN_REV=$(SVN_REV)
 EXTRA_CFLAGS += -DSVN_REV_STRING=\"$(SVN_REV)\"

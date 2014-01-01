@@ -472,6 +472,10 @@ struct rq {
 #endif
 	int skip_clock_update;
 
+	/* time-based average load */
+	u64 nr_last_stamp;
+	unsigned int ave_nr_running;
+
 	/* capture load from *all* tasks on this cpu: */
 	struct load_weight load;
 	unsigned long nr_load_updates;
@@ -1780,13 +1784,39 @@ static const struct sched_class rt_sched_class;
 
 #include "sched_stats.h"
 
+/* 27 ~= 134217728ns = 134.2ms
+ * 26 ~=  67108864ns =  67.1ms
+ * 25 ~=  33554432ns =  33.5ms
+ * 24 ~=  16777216ns =  16.8ms */
+#define NR_AVE_PERIOD_EXP	27
+#define NR_AVE_SCALE(x)		((x) << FSHIFT)
+#define NR_AVE_PERIOD		(1 << NR_AVE_PERIOD_EXP)
+#define NR_AVE_DIV_PERIOD(x)	((x) >> NR_AVE_PERIOD_EXP)
+
+static inline void do_avg_nr_running(struct rq *rq)
+{
+	s64 nr, deltax;
+
+	deltax = rq->clock_task - rq->nr_last_stamp;
+	rq->nr_last_stamp = rq->clock_task;
+	nr = NR_AVE_SCALE(rq->nr_running);
+
+	if (deltax > NR_AVE_PERIOD)
+		rq->ave_nr_running = nr;
+	else
+		rq->ave_nr_running +=
+			NR_AVE_DIV_PERIOD(deltax * (nr - rq->ave_nr_running));
+}
+
 static void inc_nr_running(struct rq *rq)
 {
+	do_avg_nr_running(rq);
 	rq->nr_running++;
 }
 
 static void dec_nr_running(struct rq *rq)
 {
+	do_avg_nr_running(rq);
 	rq->nr_running--;
 }
 
@@ -3253,6 +3283,16 @@ unsigned long nr_iowait(void)
 	return sum;
 }
 
+unsigned long avg_nr_running(void)
+{
+	unsigned long i, sum = 0;
+
+	for_each_online_cpu(i)
+		sum += cpu_rq(i)->ave_nr_running;
+
+	return sum;
+}
+
 unsigned long nr_iowait_cpu(int cpu)
 {
 	struct rq *this = cpu_rq(cpu);
@@ -3265,6 +3305,13 @@ unsigned long this_cpu_load(void)
 	return this->cpu_load[0];
 }
 
+#ifdef CONFIG_ZRAM_FOR_ANDROID
+unsigned long this_cpu_loadx(int i)
+{
+	struct rq *this = this_rq();
+	return this->cpu_load[i];
+}
+#endif /* CONFIG_ZRAM_FOR_ANDROID */
 
 /* Variables and functions for calc_load */
 static atomic_long_t calc_load_tasks;
@@ -5842,7 +5889,14 @@ void sched_show_task(struct task_struct *p)
 	printk(KERN_CONT "%5lu %5d %6d 0x%08lx\n", free,
 		task_pid_nr(p), task_pid_nr(p->real_parent),
 		(unsigned long)task_thread_info(p)->flags);
-
+#ifdef CONFIG_LOWMEM_CHECK
+	if (p->mm != NULL)
+		printk(KERN_INFO "file page total: %lu lowmem: %lu, anon page total: %lu lowmem: %lu \n",
+			get_mm_counter(p->mm, MM_FILEPAGES),
+			get_mm_counter(p->mm, MM_FILE_LOWPAGES),
+			get_mm_counter(p->mm, MM_ANONPAGES),
+			get_mm_counter(p->mm, MM_ANON_LOWPAGES));
+#endif
 	show_stack(p, NULL);
 }
 

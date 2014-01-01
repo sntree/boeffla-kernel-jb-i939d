@@ -132,13 +132,6 @@ int esc6270_boot_on(struct modem_ctl *mc)
 	}
 	gpio_set_value(mc->gpio_flm_uart_sel, 1);
 
-	/* Send reset command if ESC6270 is still alive. */
-	if ( gpio_get_value(mc->gpio_phone_active) )
-	{
-		pr_info("[MODEM_IF:ESC] <%s> ESC is alive !\n", __func__);
-		dpld->send_intr(dpld, 0xabcf);
-	}
-
 	pr_info("  - ESC_PHONE_ON : %d, ESC_RESET_N : %d\n",
 			gpio_get_value(mc->gpio_cp_on),
 			gpio_get_value(mc->gpio_cp_reset));
@@ -223,19 +216,7 @@ static irqreturn_t phone_active_irq_handler(int irq, void *arg)
 				mc->iod->modem_state_changed(mc->iod,
 							     phone_state);
 		}
-	}
-#if defined(CONFIG_MACH_GRANDE) || defined(CONFIG_MACH_T0_CHN_CTC) \
-	|| defined(CONFIG_MACH_M0_DUOSCTC)
-	else if (!phone_reset && !phone_active) {
-		if (mc->phone_state == STATE_ONLINE) {
-			phone_state = STATE_CRASH_EXIT;
-			if (mc->iod && mc->iod->modem_state_changed)
-				mc->iod->modem_state_changed(mc->iod,
-								 phone_state);
-		}
-	}
-#endif
-else {
+	} else {
 		phone_state = STATE_OFFLINE;
 		if (mc->iod && mc->iod->modem_state_changed)
 			mc->iod->modem_state_changed(mc->iod, phone_state);
@@ -299,8 +280,11 @@ int esc6270_init_modemctl_device(struct modem_ctl *mc, struct modem_data *pdata)
 	gpio_set_value(mc->gpio_cp_reset, 0);
 	gpio_set_value(mc->gpio_cp_on, 0);
 
-	pdev = to_platform_device(mc->dev);
-	mc->irq_phone_active = platform_get_irq_byname(pdev, "cp_active_irq");
+	mc->irq_phone_active = pdata->irq_phone_active;
+	if (!mc->irq_phone_active) {
+		mif_err("%s: ERR! get irq_phone_active fail\n", mc->name);
+		return -1;
+	}
 	pr_info("[MODEM_IF:ESC] <%s> PHONE_ACTIVE IRQ# = %d\n",
 		__func__, mc->irq_phone_active);
 
@@ -328,7 +312,7 @@ int esc6270_init_modemctl_device(struct modem_ctl *mc, struct modem_data *pdata)
 	}
 
 #if defined(CONFIG_SIM_DETECT)
-	mc->irq_sim_detect = platform_get_irq_byname(pdev, "sim_irq");
+	mc->irq_sim_detect = pdata->irq_sim_detect;
 	pr_info("[MODEM_IF:ESC] <%s> SIM_DECTCT IRQ# = %d\n",
 		__func__, mc->irq_sim_detect);
 

@@ -60,10 +60,13 @@ obj-$(CONFIG_USBHUB_USB3503_OTG_CONN)	+= usb3503_otg_conn.o
 obj-$(CONFIG_USBHUB_USB3803)	+= usb3803.o
 ifeq ($(CONFIG_SEC_MODEM_P8LTE),y)
 obj-$(CONFIG_SEC_MODEM)         += modem_if_na/
+else ifeq ($(CONFIG_SEC_MODEM_U1_SPR),y)
+obj-$(CONFIG_SEC_MODEM)		+= modem_if_na_spr/
+else ifeq ($(CONFIG_SEC_MODEM_V2), y)
+obj-$(CONFIG_SEC_MODEM)         += modem_v2/
 else
 obj-$(CONFIG_SEC_MODEM)		+= modem_if/
 endif
-obj-$(CONFIG_MFD_MAX77693)	+= max77693-muic.o
 obj-$(CONFIG_STMPE811_ADC)	+= stmpe811-adc.o
 obj-$(CONFIG_JACK_MON)		+= jack.o
 obj-$(CONFIG_UART_SELECT)	+= uart_select.o
@@ -73,7 +76,6 @@ obj-$(CONFIG_SEC_DEV_JACK)	+= sec_jack_muic.o
 else
 obj-$(CONFIG_SEC_DEV_JACK)	+= sec_jack.o
 endif
-obj-$(CONFIG_MUIC_MAX8997)	+= max8997-muic.o
 obj-$(CONFIG_PN544)		+= pn544.o
 obj-$(CONFIG_FM34_WE395)	+= fm34_we395.o
 obj-$(CONFIG_AUDIENCE_ES305)	+= es305.o
@@ -82,10 +84,15 @@ obj-y				+= 2mic/
 obj-$(CONFIG_SLP_PROCESS_MON)	+= slp_process_monitor.o
 obj-$(CONFIG_SLP_LOWMEM_NOTIFY)	+= slp_lowmem_notify.o
 
-obj-$(CONFIG_MACH_M0_DUOSCTC)   += cw_tty.o
+obj-$(CONFIG_MACH_M0_CTC)   += cw_tty.o
 
 # Secure OS Mobicore Interface
 obj-$(CONFIG_MOBICORE_SUPPORT)  += tzic.o
+obj-$(CONFIG_MOBICORE_DRIVER)  += tzic.o
+
+ifeq ($(TIMA_ENABLED),1)
+obj-$(CONFIG_TIMA_LOG)		+= tima_debug_log.o
+endif
 
 # Touchwake
 obj-$(CONFIG_TOUCH_WAKE)        += touch_wake.o

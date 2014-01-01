@@ -36,6 +36,10 @@
 #include <linux/mfd/s5m87xx/s5m-core.h>
 #endif
 
+#if defined(CONFIG_SEC_GPIO_DVS)
+#include <linux/secgpio_dvs.h>
+#endif
+
 #ifdef CONFIG_REGULATOR_MAX8997
 /* MOTOR */
 #ifdef CONFIG_VIBETONZ
@@ -327,6 +331,10 @@ static struct regulator_consumer_supply ldo12_supply[] = {
 static struct regulator_consumer_supply ldo13_supply[] = {
 	REGULATOR_SUPPLY("vusbhub_osc_1.8v", NULL),
 };
+#elif defined(CONFIG_MACH_M3_USA_TMO)
+static struct regulator_consumer_supply ldo13_supply[] = {
+	REGULATOR_SUPPLY("vcc_adc_1.8v", NULL),
+};
 #endif
 
 static struct regulator_consumer_supply ldo14_supply[] = {
@@ -444,6 +452,9 @@ REGULATOR_INIT(ldo12, "VUOTG_3.0V", 3000000, 3000000, 1,
 	defined(CONFIG_MACH_C1_KOR_LGT) || defined(CONFIG_MACH_C1) || \
 	defined(CONFIG_MACH_M0_DUOSCTC) || defined(CONFIG_MACH_M0_GRANDECTC)
 REGULATOR_INIT(ldo13, "VUSBHUB_OSC_1.8V", 1800000, 1800000, 0,
+	       REGULATOR_CHANGE_STATUS, 1);
+#elif defined(CONFIG_MACH_M3_USA_TMO)
+REGULATOR_INIT(ldo13, "VCC_ADC_1.8V", 1800000, 1800000, 0,
 	       REGULATOR_CHANGE_STATUS, 1);
 #endif
 REGULATOR_INIT(ldo14, "VABB2_1.95V", 1950000, 1950000, 1,
@@ -729,6 +740,15 @@ struct max77686_platform_data exynos4_max77686_info = {
 void midas_power_init(void)
 {
 	printk(KERN_INFO "%s\n", __func__);
+
+#if defined(CONFIG_SEC_GPIO_DVS)
+	/************************ Caution !!! ****************************/
+	/* This function must be located in an appropriate position for INIT state
+	 * in accordance with the specification of each BB vendor.
+	 */
+	/************************ Caution !!! ****************************/
+	gpio_dvs_check_initgpio();
+#endif
 }
 #endif /* CONFIG_REGULATOR_MAX77686 */
 

@@ -116,10 +116,12 @@ int ignore_safety_margin = IGNORE_SAFETY_MARGIN_DEFAULT;
 /* MAX77693_CHG_REG_CHG_CNFG_04 */
 #define MAX77693_CHG_MINVSYS_MASK	0xE0
 #define MAX77693_CHG_MINVSYS_SHIFT	5
+#define MAX77693_CHG_MINVSYS_3_4V	0x04
 #define MAX77693_CHG_MINVSYS_3_6V	0x06
 #define MAX77693_CHG_CV_PRM_MASK		0x1F
 #define MAX77693_CHG_CV_PRM_SHIFT		0
 #define MAX77693_CHG_CV_PRM_4_20V		0x16
+#define MAX77693_CHG_CV_PRM_4_30V		0x1A
 #define MAX77693_CHG_CV_PRM_4_35V		0x1D
 #define MAX77693_CHG_CV_PRM_4_40V		0x1F
 
@@ -156,7 +158,11 @@ int ignore_safety_margin = IGNORE_SAFETY_MARGIN_DEFAULT;
 #define STABLE_POWER_DELAY	500
 
 /* charger type detection */
+#if defined(CONFIG_MACH_KONA)
+#define DET_ERR_RETRY	10
+#else
 #define DET_ERR_RETRY	5
+#endif
 #define DET_ERR_DELAY	200
 
 /* soft charging */
@@ -239,6 +245,10 @@ struct max77693_charger_data {
 #endif
 #endif
 };
+
+#if defined(CONFIG_MACH_KONA)		
+bool mhl_connected = false; 
+#endif			
 
 static void max77693_dump_reg(struct max77693_charger_data *chg_data)
 {
@@ -461,7 +471,7 @@ int max77693_get_input_current(struct max77693_charger_data *chg_data)
 
 	get_current = reg_data * 20;
 
-	pr_debug("%s: get input current: %dmA\n", __func__, get_current);
+	pr_debug("%s: %dmA\n", __func__, get_current);
 	return get_current;
 }
 
@@ -472,7 +482,7 @@ void max77693_set_input_current(struct max77693_charger_data *chg_data,
 	int in_curr;
 	u8 set_curr_reg, now_curr_reg;
 	int step;
-	pr_debug("%s: set input current as %dmA\n", __func__, set_current);
+	pr_debug("%s: %dmA\n", __func__, set_current);
 
 	mutex_lock(&chg_data->ops_lock);
 #if defined(CONFIG_TARGET_LOCALE_KOR) || defined(CONFIG_MACH_M0_CTC)\
@@ -480,7 +490,7 @@ void max77693_set_input_current(struct max77693_charger_data *chg_data,
 	check_charger_unlock_state(chg_data);
 #endif
 
-#if defined(CONFIG_MACH_M0_DUOSCTC)
+#if defined(CONFIG_MACH_M0_DUOSCTC) || defined(CONFIG_MACH_ZEST)
 	if (set_current == OFF_CURR) {
 		pr_debug("%s: buck off current(%d)\n", __func__, set_current);
 		max77693_write_reg(i2c, MAX77693_CHG_REG_CHG_CNFG_09, 0);
@@ -510,14 +520,17 @@ void max77693_set_input_current(struct max77693_charger_data *chg_data,
 		return;
 	}
 #endif
+
 	/* Set input current limit */
 	if (chg_data->soft_reg_state) {
+		charge_info_level = chg_data->soft_reg_current;
 		pr_info("%s: now in soft regulation loop: %d\n", __func__,
 						chg_data->soft_reg_current);
 		in_curr = max77693_get_input_current(chg_data);
 		if (in_curr == chg_data->soft_reg_current) {
 			pr_debug("%s: same input current: %dmA\n",
 						__func__, in_curr);
+			charge_info_level = chg_data->soft_reg_current;			
 			mutex_unlock(&chg_data->ops_lock);
 			return;
 		}
@@ -563,7 +576,7 @@ int max77693_get_charge_current(struct max77693_charger_data *chg_data)
 	reg_data &= MAX77693_CHG_CC;
 	get_current = chg_data->charging_current = reg_data * 333 / 10;
 
-	pr_debug("%s: get charge current: %dmA\n", __func__, get_current);
+	pr_debug("%s: %dmA\n", __func__, get_current);
 	return get_current;
 }
 
@@ -572,7 +585,7 @@ void max77693_set_charge_current(struct max77693_charger_data *chg_data,
 {
 	struct i2c_client *i2c = chg_data->max77693->i2c;
 	u8 reg_data;
-	pr_debug("%s: set charge current as %dmA\n", __func__, set_current);
+	pr_debug("%s: %dmA\n", __func__, set_current);
 
 #if defined(CONFIG_TARGET_LOCALE_KOR) || defined(CONFIG_MACH_M0_CTC)\
 	|| defined(CONFIG_MACH_T0_CHN_CTC)
@@ -715,10 +728,9 @@ static int max77693_get_cable_type(struct max77693_charger_data *chg_data)
 	u8 dtls_00, chgin_dtls;
 	u8 dtls_01, chg_dtls;
 	u8 mu_st2, chgdetrun, vbvolt, chgtyp, dxovp;
-#ifdef CONFIG_BATTERY_WPC_CHARGER
 	bool wc_state;
-#endif
-	bool retry_det, chg_det_erred;
+	bool retry_det;
+	bool chg_det_erred = false;
 	bool otg_detected = false;
 	int retry_cnt = 0;
 	pr_debug("%s\n", __func__);
@@ -744,7 +756,7 @@ static int max77693_get_cable_type(struct max77693_charger_data *chg_data)
 	pr_debug("%s: CHG_REG_CHG_CNFG_00(0x%02x)\n", __func__, reg_data);
 	otg = reg_data & MAX77693_MODE_OTG;
 
-#ifdef CONFIG_MACH_GC1
+#if defined(CONFIG_MACH_GC1) || defined(CONFIG_MACH_GD2)
 	/* In Factory mode using anyway Jig to switch between USB <--> UART
 	 * sees a momentary 301K resistance as that of an OTG. Disabling
 	 * charging INTRS now can lead to USB and MTP drivers not getting
@@ -875,6 +887,7 @@ chg_det_err:
 					__func__, ++retry_cnt, chgin_dtls,
 					mu_st2, chgdetrun, vbvolt, chgtyp);
 
+#if defined(CONFIG_MAX77693_RESET_CHARGER_DETECTION)
 		/* after 200ms * 5 */
 		if (retry_cnt == DET_ERR_RETRY) {
 			pr_info("%s: reset charger detection mode\n",
@@ -883,6 +896,7 @@ chg_det_err:
 			/* reset charger detection mode */
 			max77693_reset_chgtyp(chg_data);
 		}
+#endif /* CONFIG_MAX77693_RESET_CHARGER_DETECTION */
 		msleep(DET_ERR_DELAY);
 	} while ((retry_det == true) && (retry_cnt < DET_ERR_RETRY));
 
@@ -893,7 +907,16 @@ chg_det_err:
 		state = POWER_SUPPLY_TYPE_BATTERY;
 		break;
 	case 0x1:		/* USB cabled */
-		state = POWER_SUPPLY_TYPE_USB;
+#if defined(CONFIG_MACH_KONA)		
+		if(mu_adc1k == 0x80) //MHL charging
+		{
+			state = POWER_SUPPLY_TYPE_MAINS;
+			mhl_connected = true;
+		}
+		else	
+#endif			
+			state = POWER_SUPPLY_TYPE_USB;
+
 #ifdef CONFIG_BATTERY_WPC_CHARGER
 		wc_state = max77693_get_wc_state(chg_data);
 		if (wc_state == true)
@@ -908,6 +931,9 @@ chg_det_err:
 	case 0x5:		/* Apple 1A or 2A charger */
 	case 0x6:		/* Special charger */
 		state = POWER_SUPPLY_TYPE_MAINS;
+#if defined(CONFIG_MACH_KONA)		
+		mhl_connected = false;
+#endif
 		break;
 	default:
 		state = POWER_SUPPLY_TYPE_BATTERY;
@@ -1032,12 +1058,26 @@ void max77693_set_online_type(struct max77693_charger_data *chg_data, int data)
 		15-8: SUB TYPE | 7-0: POWER TYPE | */
 	data &= ~(ONLINE_TYPE_RSVD_MASK);
 	m_typ = ((data & ONLINE_TYPE_MAIN_MASK) >> ONLINE_TYPE_MAIN_SHIFT);
-	chg_data->cable_sub_type = s_typ =
-		((data & ONLINE_TYPE_SUB_MASK) >> ONLINE_TYPE_SUB_SHIFT);
-	chg_data->cable_pwr_type = p_typ =
-		((data & ONLINE_TYPE_PWR_MASK) >> ONLINE_TYPE_PWR_SHIFT);
+	s_typ = ((data & ONLINE_TYPE_SUB_MASK) >> ONLINE_TYPE_SUB_SHIFT);
+	p_typ = ((data & ONLINE_TYPE_PWR_MASK) >> ONLINE_TYPE_PWR_SHIFT);
 	pr_info("%s: main(%d), sub(%d), pwr(%d)\n", __func__,
 					m_typ, s_typ, p_typ);
+
+	if ((m_typ != chg_data->cable_type) ||
+		(s_typ != chg_data->cable_sub_type) ||
+		(p_typ != chg_data->cable_pwr_type)) {
+		pr_info("%s: online type is updated: m(%d -> %d), "
+			"s(%d -> %d), p(%d -> %d)\n", __func__,
+			chg_data->cable_type, m_typ,
+			chg_data->cable_sub_type, s_typ,
+			chg_data->cable_pwr_type, p_typ);
+
+		/* new type, release softreg state */
+		chg_data->soft_reg_state = false;
+	}
+
+	chg_data->cable_sub_type = s_typ;
+	chg_data->cable_pwr_type = p_typ;
 
 	cancel_delayed_work(&chg_data->update_work);
 	wake_lock(&chg_data->update_wake_lock);
@@ -1138,14 +1178,31 @@ static void max77693_charger_reg_init(struct max77693_charger_data *chg_data)
 		reg_data = (0x03 << 0);		/* 125mA */
 		reg_data |= (0x00 << 3);	/* 0min */
 	} else {
-#if defined(USE_2STEP_TERM)	/* now only T0 */
+#if defined(USE_2STEP_TERM)	/* T0, GD2, ... */
+#if defined(CONFIG_MACH_BAFFIN_KOR_SKT) || \
+	defined(CONFIG_MACH_BAFFIN_KOR_KT) || \
+	defined(CONFIG_MACH_BAFFIN_KOR_LGT)
+		reg_data = (0x00 << 0);		/* 100mA */
+		reg_data |= (0x04 << 3);	/* 40min */
+#elif defined(CONFIG_MACH_KONA)
+		reg_data = (0x05 << 0);		/* 250mA */
+		reg_data |= (0x04 << 3);	/* 40min */
+#elif defined(CONFIG_MACH_GD2)
+		reg_data = (0x06 << 0);		/* 300mA */
+		reg_data |= (0x03 << 3);	/* 30min */
+#else/*GC2PD, */
 		reg_data = (0x04 << 0);		/* 200mA */
 		reg_data |= (0x04 << 3);	/* 40min */
+#endif
 #else
-#if defined(CONFIG_MACH_GC1)
+#if (defined(CONFIG_MACH_GC1) && !defined(CONFIG_MACH_GC1_USA_VZW)) || \
+	defined(CONFIG_MACH_ZEST)
 		reg_data = (0x02 << 0);		/* 150mA */
 		reg_data |= (0x00 << 3);	/* 0min */
-#else	/* M0, C1,,, */
+#elif defined(CONFIG_MACH_GD2) || defined(CONFIG_MACH_GC2PD)
+		reg_data = (0x04 << 0);		/* 200mA */
+		reg_data |= (0x00 << 3);	/* 0min */
+#else	/* M0, C1, GC_VZW,, */
 		reg_data = (0x00 << 0);		/* 100mA */
 		reg_data |= (0x00 << 3);	/* 0min */
 #endif
@@ -1159,13 +1216,19 @@ static void max77693_charger_reg_init(struct max77693_charger_data *chg_data)
 	 */
 	max77693_read_reg(i2c, MAX77693_CHG_REG_CHG_CNFG_04, &reg_data);
 	reg_data &= (~MAX77693_CHG_MINVSYS_MASK);
+#if defined(CONFIG_MACH_KONA)
+	reg_data |= (MAX77693_CHG_MINVSYS_3_4V << MAX77693_CHG_MINVSYS_SHIFT);
+#else
 	reg_data |= (MAX77693_CHG_MINVSYS_3_6V << MAX77693_CHG_MINVSYS_SHIFT);
+#endif
 	reg_data &= (~MAX77693_CHG_CV_PRM_MASK);
 #if defined(CONFIG_MACH_M0)
 	if ((system_rev != 3) && (system_rev >= 1))
 		reg_data |= (MAX77693_CHG_CV_PRM_4_35V << 0);
 	else
 		reg_data |= (MAX77693_CHG_CV_PRM_4_20V << 0);
+#elif defined(CONFIG_MACH_KONA)
+		reg_data |= (MAX77693_CHG_CV_PRM_4_30V << 0);
 #else	/* C1, C2, M3, T0, ... */
 		reg_data |= (MAX77693_CHG_CV_PRM_4_35V << 0);
 #endif
@@ -1206,12 +1269,14 @@ static void max77693_reduce_input(struct max77693_charger_data *chg_data,
 	if (chg_data->soft_reg_current < curr) {
 		pr_err("%s: recude curr(%d) is under now curr(%d)\n", __func__,
 					curr, chg_data->soft_reg_current);
+		charge_info_level = chg_data->soft_reg_current;			
 		return;
 	}
 
 	chg_data->soft_reg_current -= curr;
 	chg_data->soft_reg_current = max(chg_data->soft_reg_current,
 						SW_REG_CURR_MIN_MA);
+	charge_info_level = chg_data->soft_reg_current;
 	pr_info("%s: %dmA to %dmA\n", __func__,
 			reg_data * 20, chg_data->soft_reg_current);
 
@@ -1365,7 +1430,7 @@ static void max77693_softreg_work(struct work_struct *work)
 			cancel_delayed_work(&chg_data->update_work);
 			wake_lock(&chg_data->update_wake_lock);
 			schedule_delayed_work(&chg_data->update_work,
-					msecs_to_jiffies(STABLE_POWER_DELAY));
+				msecs_to_jiffies(STABLE_POWER_DELAY));
 		}
 
 		/* for margin */
@@ -1400,6 +1465,9 @@ static void max77693_recovery_work(struct work_struct *work)
 						recovery_work.work);
 	struct power_supply *battery_psy = power_supply_get_by_name("battery");
 	union power_supply_propval value;
+#if defined(CONFIG_MACH_KONA)
+	int in_curr;
+#endif
 	u8 dtls_00, chgin_dtls;
 	u8 dtls_01, chg_dtls;
 	u8 dtls_02, byp_dtls;
@@ -1419,6 +1487,14 @@ static void max77693_recovery_work(struct work_struct *work)
 	byp_dtls = ((dtls_02 & MAX77693_BYP_DTLS) >>
 				MAX77693_BYP_DTLS_SHIFT);
 
+#if defined(CONFIG_MACH_KONA)
+	if ((chg_data->soft_reg_recovery_cnt < RECOVERY_CNT)&&((chgin_dtls == 0x3) && (chg_dtls != 0x8) && (byp_dtls == 0x0))){
+		pr_info("%s: try to recovery, cnt(%d)\n", __func__,(chg_data->soft_reg_recovery_cnt + 1));
+		/* release softreg state */
+		chg_data->soft_reg_state = false;
+		
+		max77693_set_input_current(chg_data,chg_data->charging_current);
+#else
 	if ((chg_data->soft_reg_recovery_cnt < RECOVERY_CNT) && (
 		(chgin_dtls == 0x3) && (chg_dtls != 0x8) && (byp_dtls == 0x0) &&
 		(chg_data->soft_reg_state) && (!chg_data->soft_reg_ing))) {
@@ -1436,6 +1512,7 @@ static void max77693_recovery_work(struct work_struct *work)
 		battery_psy->set_property(battery_psy,
 					POWER_SUPPLY_PROP_STATUS,
 					&value);
+#endif
 	} else {
 		pr_info("%s: fail to recovery, cnt(%d)\n", __func__,
 				(chg_data->soft_reg_recovery_cnt + 1));
@@ -1452,6 +1529,15 @@ static void max77693_recovery_work(struct work_struct *work)
 			pr_info("%s: recovery cnt(%d) is over\n",
 				__func__, RECOVERY_CNT);
 		}
+#if defined(CONFIG_MACH_KONA)
+		in_curr = max77693_get_input_current(chg_data);
+		pr_info("%s: read input_curr (%dmA)\n", __func__, in_curr);
+		
+		if(in_curr < chg_data->charging_current)
+		{
+			chg_data->soft_reg_recovery_cnt = 0;
+		}
+#endif
 	}
 
 	/* add recovery try count */
@@ -1707,6 +1793,9 @@ static irqreturn_t max77693_charger_irq(int irq, void *data)
 		pr_info("%s: abnormal power state: chgin(%d), vb(%d), chg(%d)\n",
 					__func__, chgin_dtls, vbvolt, chg_dtls);
 
+		/* set soft regulation progress */
+		chg_data->soft_reg_ing = true;
+
 		/* enable soft regulation loop */
 		chg_data->soft_reg_state = true;
 
@@ -1924,12 +2013,12 @@ static __devinit int max77693_charger_probe(struct platform_device *pdev)
 	INIT_DELAYED_WORK(&chg_data->softreg_work, max77693_softreg_work);
 	INIT_DELAYED_WORK(&chg_data->recovery_work, max77693_recovery_work);
 
-	chg_data->charger.name = "max77693-charger",
-	chg_data->charger.type = POWER_SUPPLY_TYPE_BATTERY,
-	chg_data->charger.properties = max77693_charger_props,
-	chg_data->charger.num_properties = ARRAY_SIZE(max77693_charger_props),
-	chg_data->charger.get_property = max77693_charger_get_property,
-	chg_data->charger.set_property = max77693_charger_set_property,
+	chg_data->charger.name = "max77693-charger";
+	chg_data->charger.type = POWER_SUPPLY_TYPE_UNKNOWN;
+	chg_data->charger.properties = max77693_charger_props;
+	chg_data->charger.num_properties = ARRAY_SIZE(max77693_charger_props);
+	chg_data->charger.get_property = max77693_charger_get_property;
+	chg_data->charger.set_property = max77693_charger_set_property;
 
 	ret = power_supply_register(&pdev->dev, &chg_data->charger);
 	if (ret) {
