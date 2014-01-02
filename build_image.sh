@@ -1,10 +1,10 @@
 #!/bin/sh
 export KERNELDIR=`readlink -f .`
-export RAMFS_SOURCE=`readlink -f $KERNELDIR/../SCH-I939D-Ramfs`
+export RAMFS_SOURCE=ramdisk_samsung/boot.img-ramdisk_m0.gz
 export PARENT_DIR=`readlink -f ..`
 export USE_SEC_FIPS_MODE=true
 export CROSS_COMPILE=/opt/toolchains/arm-eabi-4.7/bin/arm-eabi-
-export VERSION=1.2
+export VERSION=4.3-0.9
 
 BOEFFLA_RAMDISK="ramdisk_boeffla"
 
@@ -14,8 +14,11 @@ RAMFS_TMP="/tmp/ramfs-source-i939d"
 rm -rf $RAMFS_TMP
 rm -rf $RAMFS_TMP.cpio
 rm -rf $RAMFS_TMP.cpio.gz
+
 #copy ramfs files to tmp directory
-cp -ax $RAMFS_SOURCE $RAMFS_TMP
+mkdir  $RAMFS_TMP
+cd $RAMFS_TMP && gunzip -c $KERNELDIR/$RAMFS_SOURCE | cpio -i && cd -
+
 #clear git repositories in ramfs
 find $RAMFS_TMP -name .git -exec rm -rf {} \;
 #remove empty directory placeholders
