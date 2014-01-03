@@ -67,7 +67,8 @@ static irqreturn_t spi_srdy_irq_handler(int irq, void *p_ld)
 	if (!spild->boot_done)
 		return result;
 
-	if (!wake_lock_active(&spild->spi_wake_lock)) {
+	if (!wake_lock_active(&spild->spi_wake_lock)
+		&&  spild->send_modem_spi != 1) {
 		wake_lock(&spild->spi_wake_lock);
 		pr_debug("[SPI] [%s](%d) spi_wakelock locked . spild->spi_state[%d]\n",
 			__func__, __LINE__, (int)spild->spi_state);
@@ -311,7 +312,7 @@ static void spi_prepare_tx_packet(void)
 
 	ld = &p_spild->ld;
 
-	for (i = 0; i < ld->max_ipc_dev; i++) {
+	for (i = 0; i < p_spild->max_ipc_dev; i++) {
 		while ((skb = skb_dequeue(ld->skb_txq[i]))) {
 			ret = spi_buff_write(p_spild, i, skb->data, skb->len);
 			if (!ret) {
@@ -331,7 +332,7 @@ static void spi_start_data_send(void)
 
 	ld = &p_spild->ld;
 
-	for (i = 0; i < ld->max_ipc_dev; i++) {
+	for (i = 0; i < p_spild->max_ipc_dev; i++) {
 		if (skb_queue_len(ld->skb_txq[i]) > 0)
 			spi_send_work(SPI_WORK_SEND, SPI_WORK);
 	}
@@ -621,7 +622,7 @@ static void spi_rx_work(void)
 		/* parsing SPI packet */
 		if (spi_buff_read(spild) > 0) {
 			/* call function for send data to IPC, RAW, RFS */
-			for (i = 0; i < ld->max_ipc_dev; i++) {
+			for (i = 0; i < spild->max_ipc_dev; i++) {
 				iod = spild->iod[i];
 				while ((skb = skb_dequeue(&spild->skb_rxq[i]))
 					 != NULL) {
@@ -1453,9 +1454,6 @@ static int link_pm_notifier_event(struct notifier_block *this,
 		return NOTIFY_BAD;
 	}
 
-	if (!gpio_get_value(iod->mc->gpio_phone_active))
-		return NOTIFY_DONE;
-
 	switch (event) {
 	case PM_SUSPEND_PREPARE:
 		/* set TD PDA Active High if previous state was LPA */
@@ -1710,9 +1708,9 @@ struct link_device *spi_create_link_device(struct platform_device *pdev)
 	}
 
 	spild->spi_state = SPI_STATE_END;
-	ld->max_ipc_dev = (IPC_RFS + 1);	/* FMT, RAW, RFS */
+	spild->max_ipc_dev = IPC_RFS+1; /* FMT, RAW, RFS */
 
-	for (i = 0; i < ld->max_ipc_dev; i++)
+	for (i = 0; i < spild->max_ipc_dev; i++)
 		skb_queue_head_init(&spild->skb_rxq[i]);
 
 	/* Prepare a clean buffer for SPI access */
